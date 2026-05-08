@@ -11,6 +11,7 @@ const FIELDS = `
   bedsNoService
   bedsWinter
   elevationCustom
+  areaIds
 `;
 
 async function fetchPage(after?: string) {
