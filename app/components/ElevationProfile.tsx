@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, Fragment } from "react";
 import type { Route } from "../page";
 
-const DIFFICULTY_COLOR: Record<string, string> = {
-  Enkel: "#16a34a",
-  Middels: "#ca8a04",
-  Krevende: "#dc2626",
-  Ukjent: "#9ca3af",
-};
+const SLOPE_GREEN = "#16a34a";
+const SLOPE_YELLOW = "#ca8a04";
+const SLOPE_RED = "#dc2626";
+
+function slopeColor(altDiff: number, distKm: number): string {
+  if (distKm < 0.0001) return SLOPE_GREEN;
+  const grade = Math.abs(altDiff) / (distKm * 1000);
+  if (grade < 0.1) return SLOPE_GREEN;
+  if (grade < 0.2) return SLOPE_YELLOW;
+  return SLOPE_RED;
+}
 
 function haversineKm(
   lat1: number,
@@ -131,10 +136,33 @@ export default function ElevationProfile({ route, onStageClick }: Props) {
     const toY = (elev: number) =>
       H - pad - ((elev - minElev) / elevRange) * (H - pad * 2);
 
-    const svgPoints = sampled
-      .map((p) => `${toX(p.dist).toFixed(1)},${toY(p.elev).toFixed(1)}`)
-      .join(" ");
-    const fillPoints = `0,${H} ${svgPoints} ${W},${H}`;
+    const svgPts = sampled.map((p) => ({
+      x: toX(p.dist),
+      y: toY(p.elev),
+      elev: p.elev,
+      dist: p.dist,
+    }));
+
+    type ColorRun = { points: { x: number; y: number }[]; color: string };
+    const colorRuns: ColorRun[] = [];
+    for (let i = 0; i < svgPts.length - 1; i++) {
+      const color = slopeColor(
+        svgPts[i + 1].elev - svgPts[i].elev,
+        svgPts[i + 1].dist - svgPts[i].dist,
+      );
+      const last = colorRuns[colorRuns.length - 1];
+      if (last?.color === color) {
+        last.points.push({ x: svgPts[i + 1].x, y: svgPts[i + 1].y });
+      } else {
+        colorRuns.push({
+          points: [
+            { x: svgPts[i].x, y: svgPts[i].y },
+            { x: svgPts[i + 1].x, y: svgPts[i + 1].y },
+          ],
+          color,
+        });
+      }
+    }
 
     return {
       totalDist,
@@ -143,8 +171,7 @@ export default function ElevationProfile({ route, onStageClick }: Props) {
       ascent: Math.round(totalAscent),
       descent: Math.round(totalDescent),
       estimatedHours: totalDist / 5 + totalAscent / 600,
-      svgPoints,
-      fillPoints,
+      colorRuns,
       stageInfos,
       toX,
       W,
@@ -154,7 +181,6 @@ export default function ElevationProfile({ route, onStageClick }: Props) {
 
   if (!profile) return null;
 
-  const color = DIFFICULTY_COLOR[route.vanskelighet] ?? DIFFICULTY_COLOR.Ukjent;
   const multiStage = profile.stageInfos.length > 1;
 
   return (
@@ -175,14 +201,26 @@ export default function ElevationProfile({ route, onStageClick }: Props) {
           className="w-full"
           preserveAspectRatio="none"
         >
-          <polygon points={profile.fillPoints} fill={color + "33"} />
-          <polyline
-            points={profile.svgPoints}
-            fill="none"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
+          {profile.colorRuns.map((run, i) => {
+            const strokePts = run.points
+              .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+              .join(" ");
+            const first = run.points[0];
+            const last = run.points[run.points.length - 1];
+            const fillPts = `${first.x.toFixed(1)},${profile.H} ${strokePts} ${last.x.toFixed(1)},${profile.H}`;
+            return (
+              <Fragment key={i}>
+                <polygon points={fillPts} fill={run.color + "33"} />
+                <polyline
+                  points={strokePts}
+                  fill="none"
+                  stroke={run.color}
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </Fragment>
+            );
+          })}
 
           {/* Stage dividers */}
           {multiStage &&
