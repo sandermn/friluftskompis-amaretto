@@ -29,7 +29,9 @@ interface RouteEdge {
 }
 
 /** Extract centroid [lat, lon] from LineString or MultiLineString geojson */
-function centroid(geojson: RouteEdge["node"]["geojson"]): [number, number] | null {
+function centroid(
+  geojson: RouteEdge["node"]["geojson"],
+): [number, number] | null {
   if (!geojson) return null;
 
   if (geojson.type === "LineString") {
@@ -91,6 +93,7 @@ export async function GET() {
           omrade: n.counties?.[0]?.name ?? null,
           lat: center?.[0] ?? null,
           lon: center?.[1] ?? null,
+          geojson: n.geojson ?? null,
         };
       })
       .filter((r) => r.lat !== null && r.name);

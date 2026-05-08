@@ -6,15 +6,21 @@ import SearchBar from "./SearchBar";
 import AreaFilter from "./AreaFilter";
 import type { SearchResult } from "../api/search/route";
 import type { DntArea } from "../api/areas/route";
+import type { Route } from "../page";
 
 const DntMap = dynamic(() => import("./DntMap"), { ssr: false });
 
 interface MapLoaderProps {
+  routes: Route[];
   selectedLocation: SearchResult | null;
   onSelectLocation: (location: SearchResult | null) => void;
 }
 
-export default function MapLoader({ selectedLocation, onSelectLocation }: MapLoaderProps) {
+export default function MapLoader({
+  routes,
+  selectedLocation,
+  onSelectLocation,
+}: MapLoaderProps) {
   const [selectedArea, setSelectedArea] = useState<DntArea | null>(null);
 
   function handleAreaChange(area: DntArea | null) {
@@ -41,7 +47,12 @@ export default function MapLoader({ selectedLocation, onSelectLocation }: MapLoa
           <SearchBar onSelect={onSelectLocation} />
         </div>
       </div>
-      <DntMap selectedLocation={selectedLocation} selectedAreaId={selectedArea?.id ?? null} />
+      <DntMap
+        routes={routes}
+        selectedLocation={selectedLocation}
+        selectedAreaId={selectedArea?.id ?? null}
+        onSelectLocation={onSelectLocation}
+      />
     </div>
   );
 }

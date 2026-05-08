@@ -3,18 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import WeatherForecast from "./WeatherForecast";
 import type { SearchResult } from "../api/search/route";
-
-interface Route {
-  id: number;
-  name: string;
-  beskrivelse: string | null;
-  vanskelighet: string;
-  gradingRaw: number;
-  distanceKm: number | null;
-  omrade: string | null;
-  lat: number;
-  lon: number;
-}
+import type { Route } from "../page";
 
 function getSeason(): string {
   const month = new Date().getMonth() + 1;
@@ -22,11 +11,6 @@ function getSeason(): string {
   if (month >= 6 && month <= 8) return "sommer";
   if (month >= 9 && month <= 11) return "høst";
   return "vinter";
-}
-
-/** Show all routes regardless of season (all difficulty levels available) */
-function filterBySeason(routes: Route[]): Route[] {
-  return routes;
 }
 
 const VANSKELIGHET_COLOR: Record<string, string> = {
@@ -44,6 +28,9 @@ const SEASON_LABEL: Record<string, string> = {
 };
 
 interface TurforslaggerListProps {
+  routes: Route[];
+  loading: boolean;
+  error: boolean;
   onSelectLocation: (location: SearchResult | null) => void;
   selectedLocation: SearchResult | null;
 }
@@ -55,32 +42,22 @@ function normalize(value: string): string {
 function isCoordinateMatch(route: Route, location: SearchResult): boolean {
   const tolerance = 0.001;
   return (
-    Math.abs(route.lat - location.lat) <= tolerance
-    && Math.abs(route.lon - location.lon) <= tolerance
+    Math.abs(route.lat - location.lat) <= tolerance &&
+    Math.abs(route.lon - location.lon) <= tolerance
   );
 }
 
-export default function TurforslaggerList({ onSelectLocation, selectedLocation }: TurforslaggerListProps) {
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default function TurforslaggerList({
+  routes,
+  loading,
+  error,
+  onSelectLocation,
+  selectedLocation,
+}: TurforslaggerListProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const lastScrolledLocationIdRef = useRef<string | null>(null);
 
   const season = getSeason();
-
-  useEffect(() => {
-    fetch("/api/routes")
-      .then((r) => r.json())
-      .then((data) => {
-        setRoutes(data.routes ?? []);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError(true);
-        setLoading(false);
-      });
-  }, []);
 
   function handleTripClick(tur: Route, isSelected: boolean) {
     const nextSelectedId = isSelected ? null : tur.id;
@@ -101,12 +78,12 @@ export default function TurforslaggerList({ onSelectLocation, selectedLocation }
     });
   }
 
-  const anbefalte = filterBySeason(routes).slice(0, 20);
   const matchedRoute = selectedLocation
-    ? anbefalte.find((route) => {
-      if (isCoordinateMatch(route, selectedLocation)) return true;
-      return normalize(route.name) === normalize(selectedLocation.name);
-    })
+    ? routes.find((route) => {
+        if (selectedLocation.id === `route-${route.id}`) return true;
+        if (isCoordinateMatch(route, selectedLocation)) return true;
+        return normalize(route.name) === normalize(selectedLocation.name);
+      })
     : undefined;
   const effectiveSelectedId = matchedRoute?.id ?? selectedId;
 
@@ -147,7 +124,7 @@ export default function TurforslaggerList({ onSelectLocation, selectedLocation }
 
       {!loading && !error && (
         <ul className="flex-1 divide-y divide-gray-50">
-          {anbefalte.map((tur) => {
+          {routes.map((tur) => {
             const isSelected = effectiveSelectedId === tur.id;
             return (
               <li key={tur.id} id={`trip-${tur.id}`}>
@@ -186,7 +163,13 @@ export default function TurforslaggerList({ onSelectLocation, selectedLocation }
                     </span>
                   </div>
                 </button>
-                {isSelected && <WeatherForecast key={`${tur.lat},${tur.lon}`} lat={tur.lat} lon={tur.lon} />}
+                {isSelected && (
+                  <WeatherForecast
+                    key={`${tur.lat},${tur.lon}`}
+                    lat={tur.lat}
+                    lon={tur.lon}
+                  />
+                )}
               </li>
             );
           })}
@@ -195,4 +178,3 @@ export default function TurforslaggerList({ onSelectLocation, selectedLocation }
     </aside>
   );
 }
-
