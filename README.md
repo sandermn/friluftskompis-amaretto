@@ -20,6 +20,16 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## CI/CD
+
+This project includes a GitHub Actions CI workflow that automatically runs on every push and pull request to `main` and `develop` branches. The workflow:
+
+- Installs dependencies with `npm ci`
+- Runs linting checks with `npm run lint`
+- Builds the project with `npm run build`
+
+The CI configuration is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
