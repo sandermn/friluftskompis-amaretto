@@ -11,25 +11,29 @@ Review the code changes below. If `$ARGUMENTS` is provided, treat it as a file p
 ## Diff to review
 
 ```!
-if [ -n "$ARGUMENTS" ]; then
-  git diff $ARGUMENTS
-elif [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
-  git diff HEAD && git diff --cached
-else
-  git diff main...HEAD && git diff HEAD
-fi
+git diff ${ARGUMENTS:-main...HEAD}
+```
+
+```!
+git diff
+```
+
+```!
+git diff --cached
 ```
 
 ## Changed files
 
 ```!
-if [ -n "$ARGUMENTS" ]; then
-  git diff --name-only $ARGUMENTS
-elif [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
-  git diff --name-only HEAD && git diff --cached --name-only
-else
-  git diff --name-only main...HEAD && git diff --name-only HEAD
-fi
+git diff --name-only ${ARGUMENTS:-main...HEAD}
+```
+
+```!
+git diff --name-only
+```
+
+```!
+git diff --cached --name-only
 ```
 
 ---
