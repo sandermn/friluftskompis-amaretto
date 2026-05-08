@@ -43,7 +43,10 @@ When a task is finished, add it to this list before committing.
 - F3 — Kart med hytter
 - F4 — Vær per dag
 - F5 — Invitere deltakere
+- F6 — AI-pakkeliste
 - F10 — Discover/Journey
+- F19 — Sosial deling
+- F20 — Administrasjon og observabilitet
 - GS1 — Live URL
 - GS2 — LLM-drevet WCAG-verifisering
 - GS3 — Design brief that works
