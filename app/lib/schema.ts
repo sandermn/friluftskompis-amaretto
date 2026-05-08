@@ -22,6 +22,7 @@ export const trips = pgTable("trips", {
   date: varchar("date", { length: 10 }).notNull(),
   startTime: varchar("start_time", { length: 5 }),
   description: text("description").notNull().default(""),
+  routeGeojson: json("route_geojson"),
   packingList: json("packing_list").$type<PackingListResponse>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

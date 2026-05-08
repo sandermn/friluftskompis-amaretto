@@ -55,6 +55,7 @@ export default function TripCreateModal({ route, onClose, onCreated }: Props) {
           date,
           startTime,
           description,
+          routeGeojson: route.geojson,
           packingList,
         }),
       });

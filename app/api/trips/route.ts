@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       date,
       startTime,
       description,
+      routeGeojson,
       packingList,
     } = body;
 
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       date: String(date),
       startTime: startTime ? String(startTime).slice(0, 5) : null,
       description: String(description ?? "").slice(0, 500),
+      routeGeojson: routeGeojson ?? null,
       packingList: packingList ?? null,
     });
 

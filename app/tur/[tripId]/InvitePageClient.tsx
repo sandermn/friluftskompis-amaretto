@@ -44,6 +44,7 @@ interface TripData {
   date: string;
   startTime: string | null;
   description: string;
+  routeGeojson: unknown;
   packingList: PackingListResponse | null;
 }
 
@@ -101,7 +102,6 @@ export default function InvitePageClient({
   const hasJoinedRef = useRef(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
-  const [routeGeojson, setRouteGeojson] = useState<unknown>(null);
 
   // Detect online/offline
   useEffect(() => {
@@ -114,20 +114,6 @@ export default function InvitePageClient({
       window.removeEventListener("online", sync);
     };
   }, []);
-
-  // Fetch route GeoJSON from DNT to draw the path on the map
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/routes/${trip.routeId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled && data.geojson) setRouteGeojson(data.geojson);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [trip.routeId]);
 
   // Cache trip data for offline use (F8)
   useEffect(() => {
@@ -192,8 +178,8 @@ export default function InvitePageClient({
   }
 
   const route = useMemo(
-    () => ({ ...buildRoute(trip), geojson: routeGeojson ?? null }),
-    [trip, routeGeojson],
+    () => ({ ...buildRoute(trip), geojson: trip.routeGeojson ?? null }),
+    [trip],
   );
   const selectedLocation = {
     id: `route-${trip.routeId}`,
