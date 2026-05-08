@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import WeatherForecast from "./WeatherForecast";
 import ElevationProfile from "./ElevationProfile";
+import TripCreateModal from "./TripCreateModal";
+import TripSharePanel from "./TripSharePanel";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
@@ -58,6 +60,8 @@ export default function TurforslaggerList({
 }: TurforslaggerListProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [profileOpenForId, setProfileOpenForId] = useState<number | null>(null);
+  const [planningRoute, setPlanningRoute] = useState<Route | null>(null);
+  const [sharedTripId, setSharedTripId] = useState<string | null>(null);
   const lastScrolledLocationIdRef = useRef<string | null>(null);
 
   function handleTripClick(tur: Route, isSelected: boolean) {
@@ -109,124 +113,168 @@ export default function TurforslaggerList({
   }, [selectedLocation]);
 
   return (
-    <aside className="w-80 shrink-0 h-full overflow-y-auto bg-white border-r border-gray-100 flex flex-col">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-          {SEASON_LABEL[season]} · {routes.length} turer
-        </p>
-        <p className="text-[11px] text-gray-600 mt-0.5">
-          Sortert etter popularitet · {SEASON_SORT_LABEL[season]}
-        </p>
-      </div>
-
-      {loading && (
-        <div className="flex-1 flex items-center justify-center text-xs text-gray-600 animate-pulse">
-          Henter turer fra DNT…
-        </div>
+    <>
+      {planningRoute && !sharedTripId && (
+        <TripCreateModal
+          route={planningRoute}
+          onClose={() => setPlanningRoute(null)}
+          onCreated={(tripId) => {
+            setPlanningRoute(null);
+            setSharedTripId(tripId);
+          }}
+        />
       )}
-
-      {error && (
-        <div className="flex-1 flex items-center justify-center text-xs text-red-400 px-4 text-center">
-          Kunne ikke laste turer fra DNT
-        </div>
+      {sharedTripId && (
+        <TripSharePanel
+          tripId={sharedTripId}
+          onClose={() => setSharedTripId(null)}
+        />
       )}
+      <aside className="w-80 shrink-0 h-full overflow-y-auto bg-white border-r border-gray-100 flex flex-col">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+            {SEASON_LABEL[season]} · {routes.length} turer
+          </p>
+          <p className="text-[11px] text-gray-600 mt-0.5">
+            Sortert etter popularitet · {SEASON_SORT_LABEL[season]}
+          </p>
+        </div>
 
-      {!loading && !error && (
-        <ul className="flex-1 divide-y divide-gray-50">
-          {routes.map((tur) => {
-            const isSelected = effectiveSelectedId === tur.id;
-            return (
-              <li key={tur.id} id={`trip-${tur.id}`}>
-                {/* Main trip card button */}
-                <button
-                  className={`w-full text-left px-4 py-4 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 outline-none ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
-                  onClick={() => handleTripClick(tur, isSelected)}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="font-semibold text-sm text-gray-900 leading-snug">
-                      {tur.name}
-                    </p>
-                    {tur.distanceKm !== null && (
-                      <span className="text-xs text-gray-600 shrink-0">
-                        {tur.distanceKm} km
-                      </span>
+        {loading && (
+          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 animate-pulse">
+            Henter turer fra DNT…
+          </div>
+        )}
+
+        {error && (
+          <div className="flex-1 flex items-center justify-center text-xs text-red-400 px-4 text-center">
+            Kunne ikke laste turer fra DNT
+          </div>
+        )}
+
+        {!loading && !error && (
+          <ul className="flex-1 divide-y divide-gray-50">
+            {routes.map((tur) => {
+              const isSelected = effectiveSelectedId === tur.id;
+              return (
+                <li key={tur.id} id={`trip-${tur.id}`}>
+                  {/* Main trip card button */}
+                  <button
+                    className={`w-full text-left px-4 py-4 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 outline-none ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                    onClick={() => handleTripClick(tur, isSelected)}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="font-semibold text-sm text-gray-900 leading-snug">
+                        {tur.name}
+                      </p>
+                      {tur.distanceKm !== null && (
+                        <span className="text-xs text-gray-600 shrink-0">
+                          {tur.distanceKm} km
+                        </span>
+                      )}
+                    </div>
+                    {tur.omrade && (
+                      <p className="text-xs text-gray-500 mb-1">{tur.omrade}</p>
                     )}
-                  </div>
-                  {tur.omrade && (
-                    <p className="text-xs text-gray-500 mb-1">{tur.omrade}</p>
-                  )}
-                  {tur.beskrivelse && (
-                    <p className="text-xs text-gray-600 mb-2 leading-relaxed line-clamp-2">
-                      {tur.beskrivelse}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    {tur.vanskelighet !== "Ukjent" && (
-                      <span
-                        className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${VANSKELIGHET_COLOR[tur.vanskelighet]}`}
+                    {tur.beskrivelse && (
+                      <p className="text-xs text-gray-600 mb-2 leading-relaxed line-clamp-2">
+                        {tur.beskrivelse}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      {tur.vanskelighet !== "Ukjent" && (
+                        <span
+                          className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${VANSKELIGHET_COLOR[tur.vanskelighet]}`}
+                        >
+                          {tur.vanskelighet}
+                        </span>
+                      )}
+                      <span className="text-xs text-blue-700 ml-auto">
+                        {isSelected ? "Lukk ↑" : "Mer ↓"}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Elevation profile + invite buttons — siblings, never nested */}
+                  {isSelected && (
+                    <div className="px-4 py-2 border-t border-gray-100 bg-white flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          setProfileOpenForId((prev) =>
+                            prev === tur.id ? null : tur.id,
+                          )
+                        }
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                          showProfile
+                            ? "bg-green-700 text-white border-green-700"
+                            : "bg-white text-green-700 border-green-600 hover:bg-green-700 hover:text-white"
+                        }`}
+                        aria-label={
+                          showProfile ? "Skjul høydeprofil" : "Vis høydeprofil"
+                        }
                       >
-                        {tur.vanskelighet}
-                      </span>
-                    )}
-                    <span className="text-xs text-blue-700 ml-auto">
-                      {isSelected ? "Lukk ↑" : "Mer ↓"}
-                    </span>
-                  </div>
-                </button>
+                        <ProfileIcon />
+                        {showProfile ? "Skjul høydeprofil" : "Høydeprofil"}
+                      </button>
+                      <button
+                        onClick={() => setPlanningRoute(tur)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-blue-600 text-blue-700 bg-white hover:bg-blue-700 hover:text-white transition-colors"
+                        aria-label="Inviter deltakere"
+                      >
+                        <InviteIcon />
+                        Inviter
+                      </button>
+                    </div>
+                  )}
 
-                {/* Elevation profile toggle — sibling button, never nested */}
-                {isSelected && (
-                  <div className="px-4 py-2 border-t border-gray-100 bg-white">
-                    <button
-                      onClick={() =>
-                        setProfileOpenForId((prev) =>
-                          prev === tur.id ? null : tur.id,
-                        )
+                  {isSelected && showProfile && (
+                    <ElevationProfile
+                      route={tur}
+                      onStageClick={(lat, lon) =>
+                        onSelectLocation({
+                          id: `route-${tur.id}`,
+                          name: tur.name,
+                          category: "route",
+                          subtitle: tur.omrade ?? undefined,
+                          lat,
+                          lon,
+                        })
                       }
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        showProfile
-                          ? "bg-green-700 text-white border-green-700"
-                          : "bg-white text-green-700 border-green-600 hover:bg-green-700 hover:text-white"
-                      }`}
-                      aria-label={
-                        showProfile ? "Skjul høydeprofil" : "Vis høydeprofil"
-                      }
-                    >
-                      <ProfileIcon />
-                      {showProfile ? "Skjul høydeprofil" : "Høydeprofil"}
-                    </button>
-                  </div>
-                )}
+                    />
+                  )}
 
-                {isSelected && showProfile && (
-                  <ElevationProfile
-                    route={tur}
-                    onStageClick={(lat, lon) =>
-                      onSelectLocation({
-                        id: `route-${tur.id}`,
-                        name: tur.name,
-                        category: "route",
-                        subtitle: tur.omrade ?? undefined,
-                        lat,
-                        lon,
-                      })
-                    }
-                  />
-                )}
+                  {isSelected && (
+                    <WeatherForecast
+                      key={`${tur.lat},${tur.lon}`}
+                      lat={tur.lat}
+                      lon={tur.lon}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </aside>
+    </>
+  );
+}
 
-                {isSelected && (
-                  <WeatherForecast
-                    key={`${tur.lat},${tur.lon}`}
-                    lat={tur.lat}
-                    lon={tur.lon}
-                  />
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </aside>
+function InviteIcon() {
+  return (
+    <svg
+      className="w-3.5 h-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <line x1="19" y1="8" x2="19" y2="14" />
+      <line x1="22" y1="11" x2="16" y2="11" />
+    </svg>
   );
 }
 
