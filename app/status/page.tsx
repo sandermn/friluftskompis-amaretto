@@ -1,22 +1,13 @@
 import Link from "next/link";
-import type { StatusResponse } from "../api/status/route";
+import { runStatusChecks } from "../lib/statusChecks";
+import type { StatusResponse } from "../lib/statusChecks";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 async function fetchStatus(): Promise<StatusResponse | null> {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL ??
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000");
-
-    const res = await fetch(`${baseUrl}/api/status`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return res.json();
+    return await runStatusChecks();
   } catch {
     return null;
   }
