@@ -53,38 +53,36 @@ export default function AreaFilter({ selectedId, onChange }: Props) {
 
   return (
     <div ref={containerRef} className="relative shrink-0">
-      <button
-        onClick={open ? () => setOpen(false) : handleOpen}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium shadow-md border transition-colors whitespace-nowrap ${
-          selectedId
-            ? "bg-green-600 text-white border-green-700 hover:bg-green-700"
-            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-        }`}
-      >
-        <svg
-          className="w-3.5 h-3.5 shrink-0"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
+      <div className="flex items-center shadow-md rounded-xl">
+        <button
+          onClick={open ? () => setOpen(false) : handleOpen}
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border transition-colors whitespace-nowrap ${
+            selectedId
+              ? "bg-green-600 text-white border-green-700 hover:bg-green-700 rounded-l-xl"
+              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 rounded-xl"
+          }`}
         >
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-        </svg>
-        {selectedArea ? selectedArea.name : "Område"}
+          <svg
+            className="w-3.5 h-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+          {selectedArea ? selectedArea.name : "Område"}
+        </button>
         {selectedId && (
-          <span
-            role="button"
+          <button
             aria-label="Fjern filter"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSelect(null);
-            }}
-            className="ml-1 hover:opacity-70"
+            onClick={() => handleSelect(null)}
+            className="px-2 py-2 rounded-r-xl text-sm font-medium border border-l-0 bg-green-600 text-white border-green-700 hover:bg-green-700 transition-colors"
           >
             ×
-          </span>
+          </button>
         )}
-      </button>
+      </div>
 
       {open && (
         <div className="absolute top-full mt-1.5 left-0 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-[2000]">
