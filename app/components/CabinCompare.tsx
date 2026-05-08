@@ -1,0 +1,180 @@
+"use client";
+
+import { useState } from "react";
+import AiBadge from "./AiBadge";
+import type { Route } from "../page";
+import type { CabinCompareResponse } from "../api/cabin-compare/route";
+
+const MAX_ROUTES = 5;
+
+interface CabinCompareProps {
+  routes: Route[];
+  season: string;
+}
+
+export default function CabinCompare({ routes, season }: CabinCompareProps) {
+  const [open, setOpen] = useState(false);
+  const [result, setResult] = useState<CabinCompareResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const topRoutes = routes.slice(0, MAX_ROUTES);
+
+  async function compare() {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/cabin-compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routes: topRoutes.map((r) => ({
+            id: r.id,
+            name: r.name,
+            distanceKm: r.distanceKm,
+            difficulty: r.vanskelighet,
+            area: r.omrade,
+            beskrivelse: r.beskrivelse,
+          })),
+          season,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data: CabinCompareResponse = await res.json();
+      setResult(data);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (routes.length < 2) return null;
+
+  return (
+    <div className="border-b border-gray-100">
+      <button
+        type="button"
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          if (next && !result) compare();
+        }}
+        className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-violet-50 transition-colors"
+        aria-expanded={open}
+      >
+        <span className="text-[11px] font-semibold text-violet-700 flex items-center gap-1.5">
+          <SparkleIcon />
+          Sammenlign topp {topRoutes.length} med AI
+        </span>
+        <span className="ml-auto text-[10px] text-gray-400">
+          {open ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 bg-violet-50 border-t border-violet-100">
+          {loading && (
+            <p className="py-4 text-center text-xs text-violet-600 animate-pulse">
+              Analyserer ruter…
+            </p>
+          )}
+
+          {error && (
+            <div className="py-3 flex items-center gap-2">
+              <p className="text-xs text-red-500">Kunne ikke sammenligne.</p>
+              <button
+                type="button"
+                onClick={compare}
+                className="text-xs text-violet-700 underline"
+              >
+                Prøv igjen
+              </button>
+            </div>
+          )}
+
+          {result && (
+            <div className="pt-3 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  {result.overview}
+                </p>
+                <AiBadge />
+              </div>
+
+              <div className="space-y-2">
+                {result.cabins.map((cabin) => (
+                  <div
+                    key={cabin.id}
+                    className="bg-white rounded-xl border border-violet-100 p-3"
+                  >
+                    <p className="text-xs font-semibold text-gray-900 mb-1.5">
+                      {cabin.name}
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-2 mb-1.5">
+                      <div className="space-y-0.5">
+                        {cabin.pros.map((p, i) => (
+                          <p
+                            key={i}
+                            className="text-[10px] text-green-700 flex gap-1"
+                          >
+                            <span aria-hidden="true">✓</span>
+                            {p}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="space-y-0.5">
+                        {cabin.cons.map((c, i) => (
+                          <p
+                            key={i}
+                            className="text-[10px] text-red-600 flex gap-1"
+                          >
+                            <span aria-hidden="true">✗</span>
+                            {c}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-gray-500 italic">
+                      {cabin.bestFor}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-violet-100 rounded-lg px-3 py-2">
+                <p className="text-xs text-violet-900 font-medium">
+                  💡 {result.recommendation}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setResult(null);
+                  compare();
+                }}
+                className="text-[10px] text-violet-600 hover:text-violet-800 transition-colors"
+              >
+                Oppdater sammenligning
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg
+      className="w-3 h-3 shrink-0"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M12 2l2.09 6.41L20.5 10l-6.41 2.09L12 18.5l-2.09-6.41L3.5 10l6.41-2.09z" />
+    </svg>
+  );
+}

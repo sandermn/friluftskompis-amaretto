@@ -6,6 +6,8 @@ import ElevationProfile from "./ElevationProfile";
 import TripCreateModal from "./TripCreateModal";
 import TripSharePanel from "./TripSharePanel";
 import { KildeBadge } from "./AiBadge";
+import CabinCompare from "./CabinCompare";
+import RouteAssessment from "./RouteAssessment";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
@@ -142,6 +144,10 @@ export default function TurforslaggerList({
           </p>
         </div>
 
+        {!loading && !error && routes.length >= 2 && (
+          <CabinCompare routes={routes} season={season} />
+        )}
+
         {fallback && (
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100">
             <svg
@@ -269,13 +275,15 @@ export default function TurforslaggerList({
                   )}
 
                   {isSelected && (
-                    <>
-                      <WeatherForecast
-                        key={`weather-${tur.lat},${tur.lon}`}
-                        lat={tur.lat}
-                        lon={tur.lon}
-                      />
-                    </>
+                    <WeatherForecast
+                      key={`weather-${tur.lat},${tur.lon}`}
+                      lat={tur.lat}
+                      lon={tur.lon}
+                    />
+                  )}
+
+                  {isSelected && (
+                    <RouteAssessment route={tur} season={season} />
                   )}
                 </li>
               );
