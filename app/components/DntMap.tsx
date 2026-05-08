@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import type { SearchResult } from "../api/search/route";
 
 type ServiceLevel =
   | "STAFFED"
@@ -49,7 +50,21 @@ function totalBeds(cabin: Cabin) {
   );
 }
 
-export default function DntMap() {
+function FlyToController({ target }: { target: SearchResult | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!target) return;
+    const zoom = target.category === "cabin" ? 14 : target.category === "peak" ? 13 : 10;
+    map.flyTo([target.lat, target.lon], zoom, { duration: 1.2 });
+  }, [target, map]);
+  return null;
+}
+
+interface DntMapProps {
+  selectedLocation: SearchResult | null;
+}
+
+export default function DntMap({ selectedLocation }: DntMapProps) {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +98,7 @@ export default function DntMap() {
           attribution='&copy; <a href="https://www.kartverket.no">Kartverket</a>'
           maxZoom={18}
         />
+        <FlyToController target={selectedLocation} />
 
         {cabins.map((cabin) => {
           const [lon, lat] = cabin.geojson.coordinates;
