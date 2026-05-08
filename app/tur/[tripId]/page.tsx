@@ -99,6 +99,11 @@ export default async function TurPage({
         ...tripPublic,
         routeLat: String(tripPublic.routeLat),
         routeLon: String(tripPublic.routeLon),
+        routeGeojson:
+          (tripPublic.routeGeojson as {
+            type: string;
+            coordinates: unknown;
+          } | null) ?? null,
       }}
       initialParticipants={members}
       initialExpenses={tripExpenses}
