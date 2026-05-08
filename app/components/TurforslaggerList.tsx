@@ -174,7 +174,7 @@ export default function TurforslaggerList({
   }, [selectedLocation]);
 
   return (
-    <aside className="w-80 shrink-0 h-full overflow-y-auto bg-white border-r border-gray-100 flex flex-col">
+    <aside className="w-full h-full overflow-y-auto bg-white flex flex-col">
       <div className="px-4 py-3 border-b border-gray-100">
         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
           {SEASON_LABEL[season]} · {routes.length} turer

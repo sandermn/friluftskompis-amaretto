@@ -90,7 +90,9 @@ export default function Home() {
   }
 
   const displayedRoutes = useMemo(() => {
-    let result = routes.filter((r) => r.distanceKm !== null && r.distanceKm > 0);
+    let result = routes.filter(
+      (r) => r.distanceKm !== null && r.distanceKm > 0,
+    );
 
     // Area / location filter
     const center = selectedArea
@@ -157,14 +159,44 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="group/app flex flex-col h-full">
+      {/* Hidden radio inputs drive all tab switching — no JS state needed */}
+      <input
+        type="radio"
+        id="view-list"
+        name="view"
+        defaultChecked
+        className="sr-only"
+      />
+      <input type="radio" id="view-map" name="view" className="sr-only" />
+
       <header className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100 shadow-sm shrink-0">
-        <span className="text-2xl" aria-hidden="true">⛰️</span>
-        <div>
+        <span className="text-2xl" aria-hidden="true">
+          ⛰️
+        </span>
+        <div className="flex-1">
           <h1 className="text-base font-semibold text-gray-900 leading-tight">
             Friluftskompis
           </h1>
           <p className="text-xs text-gray-500">DNT-hytter i Norge</p>
+        </div>
+
+        {/* View tab switcher in header */}
+        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <label
+            htmlFor="view-list"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-colors text-gray-500 hover:text-gray-700 group-has-[#view-list:checked]/app:bg-white group-has-[#view-list:checked]/app:text-green-700 group-has-[#view-list:checked]/app:shadow-sm"
+          >
+            <TabIcon />
+            Turer
+          </label>
+          <label
+            htmlFor="view-map"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer transition-colors text-gray-500 hover:text-gray-700 group-has-[#view-map:checked]/app:bg-white group-has-[#view-map:checked]/app:text-green-700 group-has-[#view-map:checked]/app:shadow-sm"
+          >
+            <MapTabIcon />
+            Kart
+          </label>
         </div>
       </header>
 
@@ -177,58 +209,65 @@ export default function Home() {
         <SearchBar onSelect={setSelectedLocation} />
       </div>
 
-      {/* Trip filters */}
-      <div className="shrink-0 bg-gray-50 border-b border-gray-100 px-4 py-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-        <FilterGroup label="Sesong">
-          {SEASONS.map(({ key, label }) => (
-            <FilterChip
-              key={key}
-              active={season === key}
-              onClick={() => toggleSeason(key)}
-              color="green"
-            >
-              {label}
-            </FilterChip>
-          ))}
-        </FilterGroup>
+      {/* Trip filters – horizontally scrollable on mobile */}
+      <div className="shrink-0 bg-gray-50 border-b border-gray-100 overflow-x-auto">
+        <div className="flex items-center gap-x-5 gap-y-1.5 px-4 py-2 min-w-max">
+          <FilterGroup label="Sesong">
+            {SEASONS.map(({ key, label }) => (
+              <FilterChip
+                key={key}
+                active={season === key}
+                onClick={() => toggleSeason(key)}
+                color="green"
+              >
+                {label}
+              </FilterChip>
+            ))}
+          </FilterGroup>
 
-        <FilterGroup label="Vanskelighet">
-          {(["Enkel", "Middels", "Krevende"] as Difficulty[]).map((d) => (
-            <FilterChip
-              key={d}
-              active={difficulty === d}
-              onClick={() => toggleDifficulty(d)}
-              color="blue"
-            >
-              {d}
-            </FilterChip>
-          ))}
-        </FilterGroup>
+          <FilterGroup label="Vanskelighet">
+            {(["Enkel", "Middels", "Krevende"] as Difficulty[]).map((d) => (
+              <FilterChip
+                key={d}
+                active={difficulty === d}
+                onClick={() => toggleDifficulty(d)}
+                color="blue"
+              >
+                {d}
+              </FilterChip>
+            ))}
+          </FilterGroup>
 
-        <FilterGroup label="Varighet">
-          {DURATIONS.map(({ key, label }) => (
-            <FilterChip
-              key={key}
-              active={duration === key}
-              onClick={() => toggleDuration(key)}
-              color="purple"
-            >
-              {label}
-            </FilterChip>
-          ))}
-        </FilterGroup>
+          <FilterGroup label="Varighet">
+            {DURATIONS.map(({ key, label }) => (
+              <FilterChip
+                key={key}
+                active={duration === key}
+                onClick={() => toggleDuration(key)}
+                color="purple"
+              >
+                {label}
+              </FilterChip>
+            ))}
+          </FilterGroup>
+        </div>
       </div>
 
-      <main className="flex-1 flex overflow-hidden">
-        <TurforslaggerList
-          routes={displayedRoutes}
-          loading={routesLoading}
-          error={routesError}
-          season={season}
-          selectedLocation={selectedLocation}
-          onSelectLocation={setSelectedLocation}
-        />
-        <div className="flex-1 relative">
+      <main className="flex-1 overflow-hidden">
+        {/* List panel: visible by default, hidden when map tab is active */}
+        <div className="h-full group-has-[#view-map:checked]/app:hidden">
+          <TurforslaggerList
+            routes={displayedRoutes}
+            loading={routesLoading}
+            error={routesError}
+            season={season}
+            selectedLocation={selectedLocation}
+            onSelectLocation={setSelectedLocation}
+          />
+        </div>
+
+        {/* Map panel: hidden by default, shown when map tab is active */}
+        <div className="h-full relative hidden group-has-[#view-map:checked]/app:block">
           <MapLoader
             routes={displayedRoutes}
             selectedLocation={selectedLocation}
@@ -238,6 +277,43 @@ export default function Home() {
         </div>
       </main>
     </div>
+  );
+}
+
+function TabIcon() {
+  return (
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
+
+function MapTabIcon() {
+  return (
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
   );
 }
 
