@@ -6,15 +6,17 @@ allowed-tools: Read Edit Write Grep Glob Bash(git *) AskUserQuestion
 argument-hint: "[file or branch]"
 ---
 
-Review the code changes below. If `$ARGUMENTS` is provided, treat it as a file path or branch name to diff against; otherwise review all working-tree and staged changes against HEAD.
+Review the code changes below. If `$ARGUMENTS` is provided, treat it as a file path or branch name to diff against. Otherwise: if on a feature branch, diff against `main`; if already on `main`, diff uncommitted changes against HEAD.
 
 ## Diff to review
 
 ```!
 if [ -n "$ARGUMENTS" ]; then
   git diff $ARGUMENTS
-else
+elif [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
   git diff HEAD && git diff --cached
+else
+  git diff main...HEAD && git diff HEAD
 fi
 ```
 
@@ -23,8 +25,10 @@ fi
 ```!
 if [ -n "$ARGUMENTS" ]; then
   git diff --name-only $ARGUMENTS
-else
+elif [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
   git diff --name-only HEAD && git diff --cached --name-only
+else
+  git diff --name-only main...HEAD && git diff --name-only HEAD
 fi
 ```
 
