@@ -13,6 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL ?? "https://friluftskompis.no",
+  ),
   title: "Friluftskompis",
   description: "Planlegg turer med DNT-hytter i Norge",
 };
