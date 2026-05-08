@@ -11,7 +11,7 @@ Review the code changes below. If `$ARGUMENTS` is provided, treat it as a file p
 ## Diff to review
 
 ```!
-git diff ${ARGUMENTS:-main...HEAD}
+git diff main...HEAD
 ```
 
 ```!
@@ -25,7 +25,7 @@ git diff --cached
 ## Changed files
 
 ```!
-git diff --name-only ${ARGUMENTS:-main...HEAD}
+git diff --name-only main...HEAD
 ```
 
 ```!
