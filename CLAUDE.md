@@ -32,6 +32,26 @@ After applying any code changes, always run:
 1. `npm run lint` — fix any ESLint errors before finishing
 2. `npx prettier --write <changed files>` — format changed files
 
+## Completed tasks
+
+When a task is finished, add it to this list before committing.
+
+- DS1 — Designsystem utvid
+- DS2 — MCP-kobling mellom Figma og Claude
+- F1 — Turforslag vises
+- F2 — Søk og filter
+- F3 — Kart med hytter
+- F4 — Vær per dag
+- F5 — Invitere deltakere
+- F10 — Discover/Journey
+- GS1 — Live URL
+- GS2 — LLM-drevet WCAG-verifisering
+- GS3 — Design brief that works
+- TE1 — CI kjører grønt
+- TE2 — Streng review av AI-generert kode
+- TE4 — Code-review skill
+- TE5 — To eksterne API-er integrert
+
 ## Rules
 
 - `dynamic(() => import(...), { ssr: false })` is only allowed inside Client Components — Next.js 16 will error if used in a Server Component.
