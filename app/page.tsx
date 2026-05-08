@@ -159,7 +159,7 @@ export default function Home() {
   return (
     <div className="flex flex-col h-full">
       <header className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100 shadow-sm shrink-0">
-        <span className="text-2xl">⛰️</span>
+        <span className="text-2xl" aria-hidden="true">⛰️</span>
         <div>
           <h1 className="text-base font-semibold text-gray-900 leading-tight">
             Friluftskompis
@@ -250,7 +250,7 @@ function FilterGroup({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs text-gray-400 font-medium shrink-0">
+      <span className="text-xs text-gray-600 font-medium shrink-0">
         {label}
       </span>
       {children}
@@ -271,15 +271,15 @@ function FilterChip({
 }) {
   const activeClass =
     color === "green"
-      ? "bg-green-600 text-white border-green-700"
+      ? "bg-green-700 text-white border-green-800"
       : color === "blue"
-        ? "bg-blue-600 text-white border-blue-700"
-        : "bg-purple-600 text-white border-purple-700";
+        ? "bg-blue-700 text-white border-blue-800"
+        : "bg-purple-700 text-white border-purple-800";
 
   return (
     <button
       onClick={onClick}
-      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors whitespace-nowrap ${
+      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors whitespace-nowrap focus:ring-2 focus:ring-offset-1 focus:ring-green-600 outline-none ${
         active
           ? activeClass
           : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"

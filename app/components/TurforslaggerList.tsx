@@ -6,10 +6,10 @@ import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
 const VANSKELIGHET_COLOR: Record<string, string> = {
-  Enkel: "bg-green-100 text-green-800",
-  Middels: "bg-yellow-100 text-yellow-800",
-  Krevende: "bg-red-100 text-red-800",
-  Ukjent: "bg-gray-100 text-gray-600",
+  Enkel: "bg-green-100 text-green-900",
+  Middels: "bg-yellow-100 text-yellow-900",
+  Krevende: "bg-red-100 text-red-900",
+  Ukjent: "bg-gray-100 text-gray-700",
 };
 
 const SEASON_LABEL: Record<string, string> = {
@@ -108,13 +108,13 @@ export default function TurforslaggerList({
         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
           {SEASON_LABEL[season]} · {routes.length} turer
         </p>
-        <p className="text-[10px] text-gray-400 mt-0.5">
+        <p className="text-[11px] text-gray-600 mt-0.5">
           Sortert etter popularitet · {SEASON_SORT_LABEL[season]}
         </p>
       </div>
 
       {loading && (
-        <div className="flex-1 flex items-center justify-center text-xs text-gray-400 animate-pulse">
+        <div className="flex-1 flex items-center justify-center text-xs text-gray-600 animate-pulse">
           Henter turer fra DNT…
         </div>
       )}
@@ -132,7 +132,7 @@ export default function TurforslaggerList({
             return (
               <li key={tur.id} id={`trip-${tur.id}`}>
                 <button
-                  className={`w-full text-left px-4 py-4 transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                  className={`w-full text-left px-4 py-4 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 outline-none ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
                   onClick={() => handleTripClick(tur, isSelected)}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -140,7 +140,7 @@ export default function TurforslaggerList({
                       {tur.name}
                     </p>
                     {tur.distanceKm !== null && (
-                      <span className="text-xs text-gray-400 shrink-0">
+                      <span className="text-xs text-gray-600 shrink-0">
                         {tur.distanceKm} km
                       </span>
                     )}
@@ -161,7 +161,7 @@ export default function TurforslaggerList({
                         {tur.vanskelighet}
                       </span>
                     )}
-                    <span className="text-xs text-blue-500 ml-auto">
+                    <span className="text-xs text-blue-700 ml-auto">
                       {isSelected ? "Skjul vær ↑" : "Vis vær ↓"}
                     </span>
                   </div>

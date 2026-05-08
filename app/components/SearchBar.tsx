@@ -95,6 +95,7 @@ export default function SearchBar({ onSelect }: Props) {
             className="animate-spin w-4 h-4 text-green-600 shrink-0"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -117,6 +118,7 @@ export default function SearchBar({ onSelect }: Props) {
             stroke="currentColor"
             strokeWidth="2"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
@@ -143,6 +145,7 @@ export default function SearchBar({ onSelect }: Props) {
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Søk på hytte, område eller fjelltopp…"
+          aria-label="Søk etter hytte, område eller fjelltopp"
           className="flex-1 text-sm text-gray-800 placeholder:text-gray-400 outline-none bg-transparent"
           aria-autocomplete="list"
           aria-expanded={open}
@@ -167,6 +170,7 @@ export default function SearchBar({ onSelect }: Props) {
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
@@ -189,7 +193,7 @@ export default function SearchBar({ onSelect }: Props) {
                 aria-selected={i === activeIdx}
                 onMouseDown={() => handleSelect(r)}
                 onMouseEnter={() => setActiveIdx(i)}
-                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-green-500 ${
                   i === activeIdx ? "bg-green-50" : "hover:bg-gray-50"
                 }`}
               >
