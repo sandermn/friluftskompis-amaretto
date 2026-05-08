@@ -5,6 +5,7 @@ import WeatherForecast from "./WeatherForecast";
 import ElevationProfile from "./ElevationProfile";
 import TripCreateModal from "./TripCreateModal";
 import TripSharePanel from "./TripSharePanel";
+import AiBadge, { KildeBadge } from "./AiBadge";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
@@ -33,6 +34,7 @@ interface TurforslaggerListProps {
   routes: Route[];
   loading: boolean;
   error: boolean;
+  fallback?: boolean;
   season: string;
   onSelectLocation: (location: SearchResult | null) => void;
   selectedLocation: SearchResult | null;
@@ -54,6 +56,7 @@ export default function TurforslaggerList({
   routes,
   loading,
   error,
+  fallback = false,
   season,
   onSelectLocation,
   selectedLocation,
@@ -140,6 +143,24 @@ export default function TurforslaggerList({
           </p>
         </div>
 
+        {fallback && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100">
+            <svg
+              className="w-3.5 h-3.5 text-amber-600 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <p className="text-xs text-amber-800">
+              DNT API er utilgjengelig — viser eksempel-turer
+            </p>
+          </div>
+        )}
+
         {loading && (
           <div className="flex-1 flex items-center justify-center text-xs text-gray-600 animate-pulse">
             Henter turer fra DNT…
@@ -180,6 +201,11 @@ export default function TurforslaggerList({
                       <p className="text-xs text-gray-600 mb-2 leading-relaxed line-clamp-2">
                         {tur.beskrivelse}
                       </p>
+                    )}
+                    {tur.beskrivelse && !tur.isFallback && (
+                      <div className="mb-1.5">
+                        <KildeBadge label="DNT" />
+                      </div>
                     )}
                     <div className="flex items-center justify-between">
                       {tur.vanskelighet !== "Ukjent" && (
@@ -250,6 +276,15 @@ export default function TurforslaggerList({
                       lon={tur.lon}
                     />
                   )}
+
+                  {isSelected && (
+                    <AiTip
+                      routeName={tur.name}
+                      vanskelighet={tur.vanskelighet}
+                      distanceKm={tur.distanceKm}
+                      season={season}
+                    />
+                  )}
                 </li>
               );
             })}
@@ -257,6 +292,65 @@ export default function TurforslaggerList({
         )}
       </aside>
     </>
+  );
+}
+
+function AiTip({
+  routeName,
+  vanskelighet,
+  distanceKm,
+  season,
+}: {
+  routeName: string;
+  vanskelighet: string;
+  distanceKm: number | null;
+  season: string;
+}) {
+  const [tip, setTip] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams({
+      route: routeName,
+      vanskelighet,
+      distanceKm: String(distanceKm ?? ""),
+      season,
+    });
+    fetch(`/api/ai-anbefaling?${params}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data.tip) setTip(data.tip);
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeName, vanskelighet, distanceKm, season]);
+
+  if (loading) {
+    return (
+      <div className="px-4 py-2 text-xs text-gray-400 animate-pulse">
+        Henter AI-tips…
+      </div>
+    );
+  }
+
+  if (!tip) return null;
+
+  return (
+    <div className="mx-3 mb-3 rounded-lg bg-violet-50 border border-violet-100 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 mb-1">
+        <AiBadge />
+        <span className="text-[10px] text-violet-600 font-medium">
+          Turguide-tips
+        </span>
+      </div>
+      <p className="text-xs text-violet-900 leading-relaxed">{tip}</p>
+    </div>
   );
 }
 

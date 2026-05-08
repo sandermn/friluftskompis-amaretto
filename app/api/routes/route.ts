@@ -67,6 +67,80 @@ function gradingLabel(grading: string | null): string {
   return "Krevende"; // TOUGH | VERY_TOUGH
 }
 
+/** Static fallback routes served when the DNT API is unavailable (S2) */
+const FALLBACK_ROUTES = [
+  {
+    id: 9001,
+    name: "Besseggen",
+    beskrivelse:
+      "Norges mest kjente dagstur. Smal rygg med Gjende på den ene siden og Bessvatnet på den andre.",
+    vanskelighet: "Krevende",
+    gradingRaw: 3,
+    distanceKm: 20,
+    omrade: "Jotunheimen",
+    lat: 61.5245,
+    lon: 8.6983,
+    geojson: null,
+    isFallback: true,
+  },
+  {
+    id: 9002,
+    name: "Preikestolen",
+    beskrivelse:
+      "Spektakulær fjellplatå 604 meter over Lysefjorden. En av Norges mest besøkte naturattraksjoner.",
+    vanskelighet: "Middels",
+    gradingRaw: 2,
+    distanceKm: 8,
+    omrade: "Rogaland",
+    lat: 58.9866,
+    lon: 6.1889,
+    geojson: null,
+    isFallback: true,
+  },
+  {
+    id: 9003,
+    name: "Galdhøpiggen",
+    beskrivelse:
+      "Norges høyeste fjell (2469 moh). Krever isøks og stigning, men gir en unik opplevelse.",
+    vanskelighet: "Krevende",
+    gradingRaw: 4,
+    distanceKm: 18,
+    omrade: "Jotunheimen",
+    lat: 61.6365,
+    lon: 8.3122,
+    geojson: null,
+    isFallback: true,
+  },
+  {
+    id: 9004,
+    name: "Romsdalseggen",
+    beskrivelse:
+      "Spektakulær eggevandring i Romsdalen med eventyrlig utsikt over Romsdalsfjorden og Romsdalshornet.",
+    vanskelighet: "Krevende",
+    gradingRaw: 3,
+    distanceKm: 10,
+    omrade: "Møre og Romsdal",
+    lat: 62.3974,
+    lon: 7.8397,
+    geojson: null,
+    isFallback: true,
+  },
+  {
+    id: 9005,
+    name: "Trolltunga",
+    beskrivelse:
+      "Den berømte klippetunga 700 meter over Ringedalsvatnet. En av Norges vakreste og mest dramatiske turer.",
+    vanskelighet: "Krevende",
+    gradingRaw: 3,
+    distanceKm: 28,
+    omrade: "Hardangervidda",
+    lat: 60.1242,
+    lon: 6.7397,
+    geojson: null,
+    isFallback: true,
+  },
+];
+
 export async function GET() {
   try {
     const res = await fetch(DNT_GQL, {
@@ -102,12 +176,17 @@ export async function GET() {
           lat: center?.[0] ?? null,
           lon: center?.[1] ?? null,
           geojson: node.geojson ?? null,
+          isFallback: false,
         };
       })
       .filter((route) => route.lat !== null && route.name);
 
     return Response.json({ routes });
   } catch {
-    return Response.json({ error: "Failed to fetch routes" }, { status: 502 });
+    // S2: serve static fallback routes when DNT is unavailable
+    return Response.json(
+      { routes: FALLBACK_ROUTES, fallback: true },
+      { status: 200 },
+    );
   }
 }
