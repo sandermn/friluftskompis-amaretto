@@ -55,10 +55,49 @@ function FlyToController({ target }: { target: SearchResult | null }) {
   const map = useMap();
   useEffect(() => {
     if (!target) return;
-    const zoom = target.category === "cabin" ? 14 : target.category === "peak" ? 13 : 10;
+    const zoom = target.category === "cabin"
+      ? 14
+      : target.category === "peak"
+        ? 13
+        : target.category === "route"
+          ? 12
+          : 10;
     map.flyTo([target.lat, target.lon], zoom, { duration: 1.2 });
   }, [target, map]);
   return null;
+}
+
+function SelectedLocationMarker({ target }: { target: SearchResult | null }) {
+  if (!target) return null;
+
+  const styleByCategory: Record<SearchResult["category"], { color: string; label: string }> = {
+    area: { color: "#0ea5e9", label: "Område" },
+    cabin: { color: "#16a34a", label: "Hytte" },
+    peak: { color: "#ea580c", label: "Fjelltopp" },
+    route: { color: "#7c3aed", label: "Tur" },
+  };
+  const style = styleByCategory[target.category];
+
+  return (
+    <CircleMarker
+      center={[target.lat, target.lon]}
+      radius={10}
+      pathOptions={{
+        fillColor: style.color,
+        color: "#ffffff",
+        weight: 3,
+        fillOpacity: 0.9,
+      }}
+    >
+      <Popup>
+        <div className="min-w-[160px]">
+          <p className="text-sm font-semibold text-gray-900">{target.name}</p>
+          <p className="text-xs text-gray-600">{style.label}</p>
+          {target.subtitle && <p className="text-xs text-gray-500 mt-1">{target.subtitle}</p>}
+        </div>
+      </Popup>
+    </CircleMarker>
+  );
 }
 
 interface DntMapProps {
@@ -101,6 +140,7 @@ export default function DntMap({ selectedLocation, selectedAreaId }: DntMapProps
           maxZoom={18}
         />
         <FlyToController target={selectedLocation} />
+        <SelectedLocationMarker target={selectedLocation} />
 
         {cabins
           .filter((c) => !selectedAreaId || c.areaIds?.includes(selectedAreaId))

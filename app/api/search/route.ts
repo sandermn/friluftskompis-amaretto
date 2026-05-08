@@ -6,7 +6,7 @@ const DNT_GQL =
 export interface SearchResult {
   id: string;
   name: string;
-  category: "cabin" | "area" | "peak";
+  category: "cabin" | "area" | "peak" | "route";
   subtitle?: string;
   lat: number;
   lon: number;
@@ -32,8 +32,11 @@ function parseDntResults(raw: string[]): SearchResult[] {
       results.push({ id: `dnt-d-${id}`, name, category: "cabin", lat, lon });
     } else if (type === "a" || type === "j") {
       results.push({ id: `dnt-a-${id}`, name, category: "area", lat, lon });
+    } else if (type === "g") {
+      const subtitle = parts[4]?.trim() || undefined;
+      results.push({ id: `dnt-g-${id}`, name, category: "route", subtitle, lat, lon });
     }
-    // skip g (routes) and h (generic places)
+    // skip h (generic places)
   }
 
   return results;
@@ -101,11 +104,16 @@ export async function GET(req: NextRequest) {
     searchPeaks(q),
   ]);
 
-  // Merge: areas first, then peaks, then cabins — deduplicated by name
+  // Merge: areas first, then trips, peaks, then cabins — deduplicated by name
   const seen = new Set<string>();
   const merged: SearchResult[] = [];
 
-  for (const r of [...dntResults.filter(r => r.category === "area"), ...peakResults, ...dntResults.filter(r => r.category === "cabin")]) {
+  for (const r of [
+    ...dntResults.filter((r) => r.category === "area"),
+    ...dntResults.filter((r) => r.category === "route"),
+    ...peakResults,
+    ...dntResults.filter((r) => r.category === "cabin"),
+  ]) {
     const key = r.name.toLowerCase();
     if (!seen.has(key)) {
       seen.add(key);

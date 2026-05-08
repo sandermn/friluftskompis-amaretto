@@ -7,6 +7,7 @@ const CATEGORY_CONFIG = {
   area: { label: "Område", icon: "🗺️" },
   cabin: { label: "Hytte", icon: "🏠" },
   peak: { label: "Fjelltopp", icon: "⛰️" },
+  route: { label: "Tur", icon: "🥾" },
 };
 
 function useDebounce<T>(value: T, delay: number): T {

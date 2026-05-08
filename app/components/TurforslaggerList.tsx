@@ -24,10 +24,8 @@ function getSeason(): string {
   return "vinter";
 }
 
-/** For vinter anbefaler vi enkle ruter, for sommer alle, etc. */
-function filterBySeason(routes: Route[], season: string): Route[] {
-  if (season === "vinter") return routes.filter((r) => r.vanskelighet === "Enkel");
-  if (season === "vår" || season === "høst") return routes.filter((r) => r.vanskelighet !== "Krevende");
+/** Show all routes regardless of season (all difficulty levels available) */
+function filterBySeason(routes: Route[]): Route[] {
   return routes;
 }
 
@@ -96,14 +94,14 @@ export default function TurforslaggerList({ onSelectLocation, selectedLocation }
     onSelectLocation({
       id: `route-${tur.id}`,
       name: tur.name,
-      category: "peak",
+      category: "route",
       subtitle: tur.omrade ?? undefined,
       lat: tur.lat,
       lon: tur.lon,
     });
   }
 
-  const anbefalte = filterBySeason(routes, season).slice(0, 20);
+  const anbefalte = filterBySeason(routes).slice(0, 20);
   const matchedRoute = selectedLocation
     ? anbefalte.find((route) => {
       if (isCoordinateMatch(route, selectedLocation)) return true;
