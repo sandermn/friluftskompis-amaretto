@@ -19,35 +19,45 @@ export interface CabinCompareResponse {
   recommendation: string;
 }
 
+export interface CabinInput {
+  id: number;
+  name: string;
+  serviceLevel: string;
+  totalBeds: number;
+  bedsWinter: number;
+  elevationM: number | null;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
-    routes,
+    cabins,
     season,
   }: {
-    routes: Array<{
-      id: number;
-      name: string;
-      distanceKm: number | null;
-      difficulty: string;
-      area: string | null;
-      beskrivelse: string | null;
-    }>;
+    cabins: CabinInput[];
     season: string;
   } = body;
 
-  const routeList = routes
+  const SERVICE_LABELS: Record<string, string> = {
+    STAFFED: "Betjent",
+    SELF_SERVICE: "Selvbetjent",
+    NO_SERVICE: "Ubetjent",
+    NO_SERVICE_NO_BEDS: "Dagshytte",
+    RENTAL: "Utleie",
+  };
+
+  const cabinList = cabins
     .map(
-      (r, i) =>
-        `${i + 1}. ${r.name} (${r.area ?? "ukjent område"}) — ${r.distanceKm ?? "?"} km, ${r.difficulty}${r.beskrivelse ? `. ${r.beskrivelse.slice(0, 100)}` : ""}`,
+      (c, i) =>
+        `${i + 1}. ${c.name} — ${SERVICE_LABELS[c.serviceLevel] ?? c.serviceLevel}, ${c.totalBeds} senger totalt (${c.bedsWinter} vinterbred)${c.elevationM ? `, ${c.elevationM} moh` : ""}`,
     )
     .join("\n");
 
-  const prompt = `Du er en erfaren norsk turplanlegger. Sammenlign disse turrutene og gi en kortfattet oversikt.
+  const prompt = `Du er en erfaren norsk turplanlegger. Sammenlign disse DNT-hyttene og gi en kortfattet oversikt.
 
 Sesong: ${season}
-Ruter:
-${routeList}
+Hytter:
+${cabinList}
 
 Returner KUN gyldig JSON (ingen markdown):
 {
@@ -61,10 +71,10 @@ Returner KUN gyldig JSON (ingen markdown):
       "bestFor": "kort beskrivelse av hvem passer best"
     }
   ],
-  "recommendation": "1 setning — hvem anbefales til hva?"
+  "recommendation": "1 setning — hvilken hytte anbefales og til hvem?"
 }
 
-Vær konkret og norsk. Maks 2 pros og 2 cons per rute.`;
+Vær konkret og norsk. Maks 2 pros og 2 cons per hytte.`;
 
   try {
     const message = await client.messages.create({

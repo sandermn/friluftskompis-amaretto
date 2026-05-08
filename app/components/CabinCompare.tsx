@@ -2,54 +2,102 @@
 
 import { useState } from "react";
 import AiBadge from "./AiBadge";
-import type { Route } from "../page";
-import type { CabinCompareResponse } from "../api/cabin-compare/route";
+import type { SearchResult } from "../api/search/route";
+import type { CabinCompareResponse, CabinInput } from "../api/cabin-compare/route";
 
-const MAX_ROUTES = 5;
+const MAX_CABINS = 5;
+const RADIUS_DEG = 1.2; // ~80–130 km
 
-interface CabinCompareProps {
-  routes: Route[];
-  season: string;
+const SERVICE_LABELS: Record<string, string> = {
+  STAFFED: "Betjent",
+  SELF_SERVICE: "Selvbetjent",
+  NO_SERVICE: "Ubetjent",
+  NO_SERVICE_NO_BEDS: "Dagshytte",
+  RENTAL: "Utleie",
+};
+
+interface RawCabin {
+  id: number;
+  name: string;
+  serviceLevel: string;
+  geojson: { type: string; coordinates: [number, number, number?] };
+  bedsStaffed: number;
+  bedsSelfService: number;
+  bedsNoService: number;
+  bedsWinter: number;
+  elevationCustom: number | null;
 }
 
-export default function CabinCompare({ routes, season }: CabinCompareProps) {
+interface CabinCompareProps {
+  season: string;
+  selectedLocation: SearchResult | null;
+}
+
+export default function CabinCompare({ season, selectedLocation }: CabinCompareProps) {
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<CabinCompareResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-
-  const topRoutes = routes.slice(0, MAX_ROUTES);
+  const [usedLocation, setUsedLocation] = useState<string | null>(null);
 
   async function compare() {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch("/api/cabin-compare", {
+      const res = await fetch("/api/cabins");
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      const edges: { node: RawCabin }[] = json.data?.cabins?.edges ?? [];
+
+      let cabins: RawCabin[] = edges.map((e) => e.node);
+
+      if (selectedLocation) {
+        cabins = cabins.filter((c) => {
+          const [lon, lat] = c.geojson?.coordinates ?? [0, 0];
+          return (
+            Math.abs(lat - selectedLocation.lat) <= RADIUS_DEG &&
+            Math.abs(lon - selectedLocation.lon) <= RADIUS_DEG
+          );
+        });
+      }
+
+      // Prefer staffed/self-service, then sort by total beds desc
+      cabins.sort((a, b) => {
+        const order: Record<string, number> = { STAFFED: 0, SELF_SERVICE: 1, RENTAL: 2, NO_SERVICE: 3, NO_SERVICE_NO_BEDS: 4 };
+        const diff = (order[a.serviceLevel] ?? 5) - (order[b.serviceLevel] ?? 5);
+        if (diff !== 0) return diff;
+        const bedsA = a.bedsStaffed + a.bedsSelfService + a.bedsNoService + a.bedsWinter;
+        const bedsB = b.bedsStaffed + b.bedsSelfService + b.bedsNoService + b.bedsWinter;
+        return bedsB - bedsA;
+      });
+
+      const top = cabins.slice(0, MAX_CABINS);
+      if (top.length < 2) throw new Error("too-few");
+
+      const payload: CabinInput[] = top.map((c) => ({
+        id: c.id,
+        name: c.name,
+        serviceLevel: c.serviceLevel,
+        totalBeds: c.bedsStaffed + c.bedsSelfService + c.bedsNoService + c.bedsWinter,
+        bedsWinter: c.bedsWinter,
+        elevationM: c.elevationCustom,
+      }));
+
+      const compareRes = await fetch("/api/cabin-compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          routes: topRoutes.map((r) => ({
-            id: r.id,
-            name: r.name,
-            distanceKm: r.distanceKm,
-            difficulty: r.vanskelighet,
-            area: r.omrade,
-            beskrivelse: r.beskrivelse,
-          })),
-          season,
-        }),
+        body: JSON.stringify({ cabins: payload, season }),
       });
-      if (!res.ok) throw new Error();
-      const data: CabinCompareResponse = await res.json();
+      if (!compareRes.ok) throw new Error();
+      const data: CabinCompareResponse = await compareRes.json();
       setResult(data);
-    } catch {
+      setUsedLocation(selectedLocation?.name ?? null);
+    } catch (err) {
       setError(true);
     } finally {
       setLoading(false);
     }
   }
-
-  if (routes.length < 2) return null;
 
   return (
     <div className="border-b border-gray-100">
@@ -65,7 +113,7 @@ export default function CabinCompare({ routes, season }: CabinCompareProps) {
       >
         <span className="text-[11px] font-semibold text-violet-700 flex items-center gap-1.5">
           <SparkleIcon />
-          Sammenlign topp {topRoutes.length} med AI
+          Sammenlign hytter i området med AI
         </span>
         <span className="ml-auto text-[10px] text-gray-400">
           {open ? "▲" : "▼"}
@@ -76,13 +124,15 @@ export default function CabinCompare({ routes, season }: CabinCompareProps) {
         <div className="px-4 pb-4 bg-violet-50 border-t border-violet-100">
           {loading && (
             <p className="py-4 text-center text-xs text-violet-600 animate-pulse">
-              Analyserer ruter…
+              Analyserer hytter…
             </p>
           )}
 
           {error && (
             <div className="py-3 flex items-center gap-2">
-              <p className="text-xs text-red-500">Kunne ikke sammenligne.</p>
+              <p className="text-xs text-red-500">
+                Kunne ikke sammenligne — for lite data i dette området.
+              </p>
               <button
                 type="button"
                 onClick={compare}
@@ -96,9 +146,16 @@ export default function CabinCompare({ routes, season }: CabinCompareProps) {
           {result && (
             <div className="pt-3 space-y-3">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  {result.overview}
-                </p>
+                <div>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {result.overview}
+                  </p>
+                  {usedLocation && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      Hytter nær {usedLocation}
+                    </p>
+                  )}
+                </div>
                 <AiBadge />
               </div>
 
@@ -114,10 +171,7 @@ export default function CabinCompare({ routes, season }: CabinCompareProps) {
                     <div className="grid grid-cols-2 gap-x-2 mb-1.5">
                       <div className="space-y-0.5">
                         {cabin.pros.map((p, i) => (
-                          <p
-                            key={i}
-                            className="text-[10px] text-green-700 flex gap-1"
-                          >
+                          <p key={i} className="text-[10px] text-green-700 flex gap-1">
                             <span aria-hidden="true">✓</span>
                             {p}
                           </p>
@@ -125,10 +179,7 @@ export default function CabinCompare({ routes, season }: CabinCompareProps) {
                       </div>
                       <div className="space-y-0.5">
                         {cabin.cons.map((c, i) => (
-                          <p
-                            key={i}
-                            className="text-[10px] text-red-600 flex gap-1"
-                          >
+                          <p key={i} className="text-[10px] text-red-600 flex gap-1">
                             <span aria-hidden="true">✗</span>
                             {c}
                           </p>
@@ -178,3 +229,4 @@ function SparkleIcon() {
     </svg>
   );
 }
+

@@ -144,8 +144,8 @@ export default function TurforslaggerList({
           </p>
         </div>
 
-        {!loading && !error && routes.length >= 2 && (
-          <CabinCompare routes={routes} season={season} />
+        {!loading && !error && (
+          <CabinCompare season={season} selectedLocation={selectedLocation} />
         )}
 
         {fallback && (
