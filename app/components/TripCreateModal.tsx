@@ -113,7 +113,7 @@ export default function TripCreateModal({ route, onClose, onCreated }: Props) {
               htmlFor="trip-title"
               className="block text-xs font-medium text-gray-700 mb-1"
             >
-              Turstitel
+              Turtittel
             </label>
             <input
               id="trip-title"
