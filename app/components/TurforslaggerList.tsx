@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import WeatherForecast from "./WeatherForecast";
+import type { SearchResult } from "../api/search/route";
 
 interface Route {
   id: number;
@@ -44,11 +45,29 @@ const SEASON_LABEL: Record<string, string> = {
   vinter: "❄️ Vinter",
 };
 
-export default function TurforslaggerList() {
+interface TurforslaggerListProps {
+  onSelectLocation: (location: SearchResult | null) => void;
+  selectedLocation: SearchResult | null;
+}
+
+function normalize(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isCoordinateMatch(route: Route, location: SearchResult): boolean {
+  const tolerance = 0.001;
+  return (
+    Math.abs(route.lat - location.lat) <= tolerance
+    && Math.abs(route.lon - location.lon) <= tolerance
+  );
+}
+
+export default function TurforslaggerList({ onSelectLocation, selectedLocation }: TurforslaggerListProps) {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const lastScrolledLocationIdRef = useRef<string | null>(null);
 
   const season = getSeason();
 
@@ -65,7 +84,48 @@ export default function TurforslaggerList() {
       });
   }, []);
 
+  function handleTripClick(tur: Route, isSelected: boolean) {
+    const nextSelectedId = isSelected ? null : tur.id;
+    setSelectedId(nextSelectedId);
+
+    if (nextSelectedId === null) {
+      onSelectLocation(null);
+      return;
+    }
+
+    onSelectLocation({
+      id: `route-${tur.id}`,
+      name: tur.name,
+      category: "peak",
+      subtitle: tur.omrade ?? undefined,
+      lat: tur.lat,
+      lon: tur.lon,
+    });
+  }
+
   const anbefalte = filterBySeason(routes, season).slice(0, 20);
+  const matchedRoute = selectedLocation
+    ? anbefalte.find((route) => {
+      if (isCoordinateMatch(route, selectedLocation)) return true;
+      return normalize(route.name) === normalize(selectedLocation.name);
+    })
+    : undefined;
+  const effectiveSelectedId = matchedRoute?.id ?? selectedId;
+
+  useEffect(() => {
+    if (!selectedLocation || !matchedRoute) return;
+    if (selectedLocation.id === lastScrolledLocationIdRef.current) return;
+
+    const item = document.getElementById(`trip-${matchedRoute.id}`);
+    item?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    lastScrolledLocationIdRef.current = selectedLocation.id;
+  }, [selectedLocation, matchedRoute]);
+
+  useEffect(() => {
+    if (!selectedLocation) {
+      lastScrolledLocationIdRef.current = null;
+    }
+  }, [selectedLocation]);
 
   return (
     <aside className="w-80 shrink-0 h-full overflow-y-auto bg-white border-r border-gray-100 flex flex-col">
@@ -90,12 +150,12 @@ export default function TurforslaggerList() {
       {!loading && !error && (
         <ul className="flex-1 divide-y divide-gray-50">
           {anbefalte.map((tur) => {
-            const isSelected = selectedId === tur.id;
+            const isSelected = effectiveSelectedId === tur.id;
             return (
-              <li key={tur.id}>
+              <li key={tur.id} id={`trip-${tur.id}`}>
                 <button
                   className={`w-full text-left px-4 py-4 transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
-                  onClick={() => setSelectedId(isSelected ? null : tur.id)}
+                  onClick={() => handleTripClick(tur, isSelected)}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <p className="font-semibold text-sm text-gray-900 leading-snug">
