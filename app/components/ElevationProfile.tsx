@@ -39,8 +39,12 @@ function extractStages(
 }
 
 function formatTime(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
+  let h = Math.floor(hours);
+  let m = Math.round((hours - h) * 60);
+  if (m === 60) {
+    h += 1;
+    m = 0;
+  }
   if (h === 0) return `${m} min`;
   if (m === 0) return `${h} t`;
   return `${h} t ${m} min`;
@@ -66,7 +70,7 @@ export default function ElevationProfile({ route, onStageClick }: Props) {
     const stages = extractStages(route.geojson);
     if (stages.length === 0 || stages[0].length < 2) return null;
 
-    const hasAlt = stages.flat().some(([, , alt]) => (alt ?? 0) > 0);
+    const hasAlt = stages.flat().some(([, , alt]) => alt != null);
     if (!hasAlt) return null;
 
     type Point = { dist: number; elev: number };
