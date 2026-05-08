@@ -1,4 +1,5 @@
 import MapLoader from "./components/MapLoader";
+import TurforslaggerList from "./components/TurforslaggerList";
 
 export default function Home() {
   return (
@@ -12,8 +13,11 @@ export default function Home() {
           <p className="text-xs text-gray-500">DNT-hytter i Norge</p>
         </div>
       </header>
-      <main className="flex-1 relative">
-        <MapLoader />
+      <main className="flex-1 flex overflow-hidden">
+        <TurforslaggerList />
+        <div className="flex-1 relative">
+          <MapLoader />
+        </div>
       </main>
     </div>
   );
