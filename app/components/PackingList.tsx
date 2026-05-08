@@ -239,13 +239,38 @@ export default function PackingList({
             type="button"
             onClick={generate}
             disabled={status === "loading"}
-            className="text-[10px] px-2 py-1 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 focus:ring-2 focus:ring-green-500 focus:ring-offset-1 outline-none transition-colors"
+            className="inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-70 focus:ring-2 focus:ring-green-500 focus:ring-offset-1 outline-none transition-colors"
+            aria-busy={status === "loading"}
           >
-            {status === "loading"
-              ? "Genererer…"
-              : list
-                ? "Oppdater"
-                : "Generer"}
+            {status === "loading" ? (
+              <>
+                <svg
+                  className="animate-spin w-3 h-3 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  />
+                </svg>
+                Genererer…
+              </>
+            ) : list ? (
+              "Oppdater"
+            ) : (
+              "Generer"
+            )}
           </button>
         </div>
       </div>
@@ -267,6 +292,32 @@ export default function PackingList({
         <p className="px-3 pb-2 text-xs text-red-500">
           Kunne ikke generere pakkeliste. Prøv igjen.
         </p>
+      )}
+
+      {/* Skeleton while loading */}
+      {status === "loading" && (
+        <div
+          className="divide-y divide-green-100 px-3 py-2 space-y-3"
+          aria-label="Genererer pakkeliste…"
+        >
+          {[5, 4, 3].map((lines, gi) => (
+            <div key={gi} className="pt-2 first:pt-0">
+              {/* Category heading skeleton */}
+              <div className="h-2.5 w-20 rounded bg-green-200 animate-pulse mb-2" />
+              <ul className="space-y-1.5">
+                {Array.from({ length: lines }).map((_, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded shrink-0 bg-green-200 animate-pulse" />
+                    <div
+                      className="h-2 rounded bg-green-100 animate-pulse"
+                      style={{ width: `${55 + ((i * 17 + gi * 11) % 35)}%` }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Packing list */}
