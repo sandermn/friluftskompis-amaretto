@@ -20,6 +20,7 @@ export interface Route {
   lat: number;
   lon: number;
   geojson: { type: string; coordinates: unknown } | null;
+  imageUrl?: string | null;
   isFallback?: boolean;
 }
 

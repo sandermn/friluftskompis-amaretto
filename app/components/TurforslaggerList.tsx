@@ -227,6 +227,18 @@ export default function TurforslaggerList({
                   </button>
 
                   {/* Elevation profile + invite buttons — siblings, never nested */}
+                  {isSelected && tur.imageUrl && (
+                    <div className="w-full h-40 overflow-hidden border-t border-gray-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={tur.imageUrl}
+                        alt={`Bilde fra ${tur.name}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+
                   {isSelected && (
                     <div className="px-4 py-2 border-t border-gray-100 bg-white flex items-center gap-2">
                       <button

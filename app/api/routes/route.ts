@@ -9,6 +9,7 @@ const FIELDS = `
   distance
   counties { name }
   geojson
+  media { id uri type }
 `;
 
 interface RouteEdge {
@@ -25,6 +26,7 @@ interface RouteEdge {
       // MultiLineString: [lon, lat, alt?][][]
       coordinates: unknown;
     } | null;
+    media: { id: number; uri: string; type: string }[];
   };
 }
 
@@ -176,6 +178,9 @@ export async function GET() {
           lat: center?.[0] ?? null,
           lon: center?.[1] ?? null,
           geojson: node.geojson ?? null,
+          imageUrl: node.media?.[0]?.uri
+            ? `https://res.cloudinary.com/ntb/image/upload/w_800,h_400,c_fill/${node.media[0].uri}`
+            : null,
           isFallback: false,
         };
       })
