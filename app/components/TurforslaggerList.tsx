@@ -6,6 +6,7 @@ import ElevationProfile from "./ElevationProfile";
 import TripCreateModal from "./TripCreateModal";
 import TripSharePanel from "./TripSharePanel";
 import AiBadge, { KildeBadge } from "./AiBadge";
+import PackingList from "./PackingList";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
@@ -70,7 +71,7 @@ export default function TurforslaggerList({
   function handleTripClick(tur: Route, isSelected: boolean) {
     const nextSelectedId = isSelected ? null : tur.id;
     setSelectedId(nextSelectedId);
-    setProfileOpenForId(null); // hide profile when switching trips
+    setProfileOpenForId(null);
 
     if (nextSelectedId === null) {
       onSelectLocation(null);
@@ -96,7 +97,6 @@ export default function TurforslaggerList({
       })
     : undefined;
   const effectiveSelectedId = matchedRoute?.id ?? selectedId;
-  // Profile is shown only when explicitly opened for the currently selected route
   const showProfile =
     profileOpenForId === effectiveSelectedId && effectiveSelectedId !== null;
 
@@ -270,11 +270,21 @@ export default function TurforslaggerList({
                   )}
 
                   {isSelected && (
-                    <WeatherForecast
-                      key={`${tur.lat},${tur.lon}`}
-                      lat={tur.lat}
-                      lon={tur.lon}
-                    />
+                    <>
+                      <WeatherForecast
+                        key={`weather-${tur.lat},${tur.lon}`}
+                        lat={tur.lat}
+                        lon={tur.lon}
+                      />
+                      <PackingList
+                        key={`packing-${tur.id}`}
+                        tripName={tur.name}
+                        distanceKm={tur.distanceKm}
+                        difficulty={tur.vanskelighet}
+                        lat={tur.lat}
+                        lon={tur.lon}
+                      />
+                    </>
                   )}
 
                   {isSelected && (

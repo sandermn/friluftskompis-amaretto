@@ -2,10 +2,12 @@ import {
   pgTable,
   serial,
   integer,
+  json,
   text,
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { PackingListResponse } from "../api/packing-list/route";
 
 export const trips = pgTable("trips", {
   id: varchar("id", { length: 12 }).primaryKey(),
@@ -19,6 +21,7 @@ export const trips = pgTable("trips", {
   tripTitle: text("trip_title").notNull(),
   date: varchar("date", { length: 10 }).notNull(),
   description: text("description").notNull().default(""),
+  packingList: json("packing_list").$type<PackingListResponse>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

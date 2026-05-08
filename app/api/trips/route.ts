@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       tripTitle,
       date,
       description,
+      packingList,
     } = body;
 
     if (
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
       tripTitle: tripTitle.trim().slice(0, 80),
       date: String(date),
       description: String(description ?? "").slice(0, 500),
+      packingList: packingList ?? null,
     });
 
     return Response.json({ tripId: id, adminToken });

@@ -60,3 +60,4 @@ When a task is finished, add it to this list before committing.
 - Derive expensive values with `useMemo` rather than recomputing them in JSX or in multiple places in the same render.
 - Every new interactive component (dropdown, combobox, menu) must support keyboard navigation: ↑/↓ to move, Enter to select, Escape to close.
 - All `<input>` elements need a visible `<label>` or `aria-label`.
+- Every `<button>` that is not a form submit must have `type="button"` — omitting it defaults to `type="submit"` and will trigger any ancestor `<form>`.

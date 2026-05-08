@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import WeatherForecast from "../../components/WeatherForecast";
+import type { PackingListResponse } from "../../api/packing-list/route";
 import type { Route } from "../../page";
 
 const MapLoader = dynamic(() => import("../../components/MapLoader"), {
@@ -32,6 +33,7 @@ interface TripData {
   tripTitle: string;
   date: string;
   description: string;
+  packingList: PackingListResponse | null;
 }
 
 interface Props {
@@ -202,6 +204,36 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
             />
           </section>
 
+          {/* Packing list */}
+          {trip.packingList && (
+            <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-4 pt-3 pb-2 border-b border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  🎒 Pakkeliste
+                </p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {trip.packingList.categories.map((cat) => (
+                  <StoredPackingCategory key={cat.category} category={cat} />
+                ))}
+                {trip.packingList.tips.length > 0 && (
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                      💡 Tips
+                    </p>
+                    <ul className="space-y-1">
+                      {trip.packingList.tips.map((tip, i) => (
+                        <li key={i} className="text-xs text-gray-600">
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Participants */}
           <section className="bg-white rounded-xl border border-gray-200 p-4">
             <h2 className="text-sm font-semibold text-gray-900 mb-3">
@@ -271,6 +303,51 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StoredPackingCategory({
+  category,
+}: {
+  category: PackingListResponse["categories"][number];
+}) {
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+
+  function toggle(item: string) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(item)) next.delete(item);
+      else next.add(item);
+      return next;
+    });
+  }
+
+  return (
+    <div className="px-4 py-3">
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+        {category.emoji} {category.category}
+      </p>
+      <ul className="space-y-1">
+        {category.items.map((item) => (
+          <li key={item}>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={checked.has(item)}
+                onChange={() => toggle(item)}
+                className="mt-0.5 accent-green-600 shrink-0"
+                aria-label={item}
+              />
+              <span
+                className={`text-xs ${checked.has(item) ? "line-through text-gray-400" : "text-gray-700"}`}
+              >
+                {item}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
