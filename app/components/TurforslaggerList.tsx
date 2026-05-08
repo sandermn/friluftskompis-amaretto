@@ -128,7 +128,7 @@ export default function TurforslaggerList() {
                     </span>
                   </div>
                 </button>
-                {isSelected && <WeatherForecast lat={tur.lat} lon={tur.lon} />}
+                {isSelected && <WeatherForecast key={`${tur.lat},${tur.lon}`} lat={tur.lat} lon={tur.lon} />}
               </li>
             );
           })}

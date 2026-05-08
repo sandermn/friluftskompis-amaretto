@@ -96,7 +96,6 @@ export default function WeatherForecast({ lat, lon }: { lat: number; lon: number
 
   useEffect(() => {
     let cancelled = false;
-    setState({ status: "loading" });
     fetch(`/api/weather?lat=${lat}&lon=${lon}`)
       .then((r) => r.json())
       .then((data) => {
