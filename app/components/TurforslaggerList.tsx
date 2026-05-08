@@ -57,11 +57,13 @@ export default function TurforslaggerList({
   selectedLocation,
 }: TurforslaggerListProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [profileOpenForId, setProfileOpenForId] = useState<number | null>(null);
   const lastScrolledLocationIdRef = useRef<string | null>(null);
 
   function handleTripClick(tur: Route, isSelected: boolean) {
     const nextSelectedId = isSelected ? null : tur.id;
     setSelectedId(nextSelectedId);
+    setProfileOpenForId(null); // hide profile when switching trips
 
     if (nextSelectedId === null) {
       onSelectLocation(null);
@@ -87,6 +89,9 @@ export default function TurforslaggerList({
       })
     : undefined;
   const effectiveSelectedId = matchedRoute?.id ?? selectedId;
+  // Profile is shown only when explicitly opened for the currently selected route
+  const showProfile =
+    profileOpenForId === effectiveSelectedId && effectiveSelectedId !== null;
 
   useEffect(() => {
     if (!selectedLocation || !matchedRoute) return;
@@ -132,6 +137,7 @@ export default function TurforslaggerList({
             const isSelected = effectiveSelectedId === tur.id;
             return (
               <li key={tur.id} id={`trip-${tur.id}`}>
+                {/* Main trip card button */}
                 <button
                   className={`w-full text-left px-4 py-4 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 outline-none ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
                   onClick={() => handleTripClick(tur, isSelected)}
@@ -167,15 +173,51 @@ export default function TurforslaggerList({
                     </span>
                   </div>
                 </button>
+
+                {/* Elevation profile toggle — sibling button, never nested */}
                 {isSelected && (
-                  <>
-                    <ElevationProfile route={tur} />
-                    <WeatherForecast
-                      key={`${tur.lat},${tur.lon}`}
-                      lat={tur.lat}
-                      lon={tur.lon}
-                    />
-                  </>
+                  <button
+                    onClick={() =>
+                      setProfileOpenForId((prev) =>
+                        prev === tur.id ? null : tur.id,
+                      )
+                    }
+                    className={`w-full flex items-center gap-1.5 px-4 py-1.5 text-xs border-t border-gray-100 transition-colors ${
+                      showProfile
+                        ? "bg-green-50 text-green-700"
+                        : "text-gray-400 hover:text-green-700 hover:bg-green-50"
+                    }`}
+                    aria-label={
+                      showProfile ? "Skjul høydeprofil" : "Vis høydeprofil"
+                    }
+                  >
+                    <ProfileIcon />
+                    {showProfile ? "Skjul høydeprofil" : "Høydeprofil"}
+                  </button>
+                )}
+
+                {isSelected && showProfile && (
+                  <ElevationProfile
+                    route={tur}
+                    onStageClick={(lat, lon) =>
+                      onSelectLocation({
+                        id: `route-${tur.id}`,
+                        name: tur.name,
+                        category: "route",
+                        subtitle: tur.omrade ?? undefined,
+                        lat,
+                        lon,
+                      })
+                    }
+                  />
+                )}
+
+                {isSelected && (
+                  <WeatherForecast
+                    key={`${tur.lat},${tur.lon}`}
+                    lat={tur.lat}
+                    lon={tur.lon}
+                  />
                 )}
               </li>
             );
@@ -183,5 +225,20 @@ export default function TurforslaggerList({
         </ul>
       )}
     </aside>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg
+      className="w-3.5 h-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
   );
 }

@@ -90,7 +90,7 @@ export default function Home() {
   }
 
   const displayedRoutes = useMemo(() => {
-    let result = [...routes];
+    let result = routes.filter((r) => r.distanceKm !== null && r.distanceKm > 0);
 
     // Area / location filter
     const center = selectedArea

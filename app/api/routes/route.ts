@@ -103,7 +103,7 @@ export async function GET() {
           geojson: n.geojson ?? null,
         };
       })
-      .filter((r) => r.lat !== null && r.name);
+      .filter((r) => r.lat !== null && r.name && r.distanceKm !== null && r.distanceKm > 0);
 
     return Response.json({ routes });
   } catch {

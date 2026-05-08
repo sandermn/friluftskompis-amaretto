@@ -27,14 +27,14 @@ function haversineKm(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function extractCoords(geojson: Route["geojson"]): [number, number, number][] {
+function extractStages(
+  geojson: Route["geojson"],
+): [number, number, number][][] {
   if (!geojson) return [];
-  if (geojson.type === "LineString") {
-    return geojson.coordinates as [number, number, number][];
-  }
-  if (geojson.type === "MultiLineString") {
-    return (geojson.coordinates as [number, number, number][][]).flat();
-  }
+  if (geojson.type === "LineString")
+    return [geojson.coordinates as [number, number, number][]];
+  if (geojson.type === "MultiLineString")
+    return geojson.coordinates as [number, number, number][][];
   return [];
 }
 
@@ -46,73 +46,103 @@ function formatTime(hours: number): string {
   return `${h} t ${m} min`;
 }
 
-export default function ElevationProfile({ route }: { route: Route }) {
-  const profile = useMemo(() => {
-    const coords = extractCoords(route.geojson);
-    if (coords.length < 2) return null;
+interface StageInfo {
+  startDist: number;
+  endDist: number;
+  midLat: number;
+  midLon: number;
+  distance: number;
+  ascent: number;
+  estimatedHours: number;
+}
 
-    const hasAlt = coords.some(([, , alt]) => alt > 0);
+interface Props {
+  route: Route;
+  onStageClick?: (lat: number, lon: number) => void;
+}
+
+export default function ElevationProfile({ route, onStageClick }: Props) {
+  const profile = useMemo(() => {
+    const stages = extractStages(route.geojson);
+    if (stages.length === 0 || stages[0].length < 2) return null;
+
+    const hasAlt = stages.flat().some(([, , alt]) => (alt ?? 0) > 0);
     if (!hasAlt) return null;
 
-    // Build cumulative distance + elevation series
     type Point = { dist: number; elev: number };
-    const points: Point[] = [];
+    const allPoints: Point[] = [];
+    const stageInfos: StageInfo[] = [];
     let cumDist = 0;
+    let totalAscent = 0;
+    let totalDescent = 0;
 
-    for (let i = 0; i < coords.length; i++) {
-      const [lon, lat, alt = 0] = coords[i];
-      if (i > 0) {
-        const [lon0, lat0] = coords[i - 1];
-        cumDist += haversineKm(lat0, lon0, lat, lon);
+    for (const stageCoords of stages) {
+      const stageStartDist = cumDist;
+      let stageAscent = 0;
+
+      for (let i = 0; i < stageCoords.length; i++) {
+        const [lon, lat, alt = 0] = stageCoords[i];
+        if (i > 0) {
+          const [lon0, lat0] = stageCoords[i - 1];
+          cumDist += haversineKm(lat0, lon0, lat, lon);
+          const diff = alt - (stageCoords[i - 1][2] ?? 0);
+          if (diff > 0) {
+            stageAscent += diff;
+            totalAscent += diff;
+          } else totalDescent += Math.abs(diff);
+        }
+        allPoints.push({ dist: cumDist, elev: alt });
       }
-      points.push({ dist: cumDist, elev: alt });
+
+      const stageDist = cumDist - stageStartDist;
+      const mid = stageCoords[Math.floor(stageCoords.length / 2)];
+      stageInfos.push({
+        startDist: stageStartDist,
+        endDist: cumDist,
+        midLat: mid[1],
+        midLon: mid[0],
+        distance: Math.round(stageDist * 10) / 10,
+        ascent: Math.round(stageAscent),
+        estimatedHours: stageDist / 5 + stageAscent / 600,
+      });
     }
 
-    const totalDist = points[points.length - 1].dist;
-    const elevs = points.map((p) => p.elev);
+    const totalDist = cumDist;
+    const elevs = allPoints.map((p) => p.elev);
     const minElev = Math.min(...elevs);
     const maxElev = Math.max(...elevs);
     const elevRange = maxElev - minElev || 1;
 
-    // Ascent / descent and Naismith's rule
-    let ascent = 0;
-    let descent = 0;
-    for (let i = 1; i < points.length; i++) {
-      const diff = points[i].elev - points[i - 1].elev;
-      if (diff > 0) ascent += diff;
-      else descent += Math.abs(diff);
-    }
-    const estimatedHours = totalDist / 5 + ascent / 600;
-
-    // Downsample to ≤ 300 points for SVG performance
-    const step = Math.max(1, Math.floor(points.length / 300));
-    const sampled = points.filter(
-      (_, i) => i % step === 0 || i === points.length - 1,
+    // Downsample for SVG
+    const step = Math.max(1, Math.floor(allPoints.length / 300));
+    const sampled = allPoints.filter(
+      (_, i) => i % step === 0 || i === allPoints.length - 1,
     );
 
     const W = 280;
     const H = 56;
     const pad = 4;
 
-    const svgPoints = sampled
-      .map((p) => {
-        const x = (p.dist / totalDist) * W;
-        const y = H - pad - ((p.elev - minElev) / elevRange) * (H - pad * 2);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
+    const toX = (dist: number) => (dist / totalDist) * W;
+    const toY = (elev: number) =>
+      H - pad - ((elev - minElev) / elevRange) * (H - pad * 2);
 
+    const svgPoints = sampled
+      .map((p) => `${toX(p.dist).toFixed(1)},${toY(p.elev).toFixed(1)}`)
+      .join(" ");
     const fillPoints = `0,${H} ${svgPoints} ${W},${H}`;
 
     return {
       totalDist,
       minElev: Math.round(minElev),
       maxElev: Math.round(maxElev),
-      ascent: Math.round(ascent),
-      descent: Math.round(descent),
-      estimatedHours,
+      ascent: Math.round(totalAscent),
+      descent: Math.round(totalDescent),
+      estimatedHours: totalDist / 5 + totalAscent / 600,
       svgPoints,
       fillPoints,
+      stageInfos,
+      toX,
       W,
       H,
     };
@@ -121,7 +151,7 @@ export default function ElevationProfile({ route }: { route: Route }) {
   if (!profile) return null;
 
   const color = DIFFICULTY_COLOR[route.vanskelighet] ?? DIFFICULTY_COLOR.Ukjent;
-  const colorOpaque = color + "33"; // ~20% opacity fill
+  const multiStage = profile.stageInfos.length > 1;
 
   return (
     <div className="px-4 pt-3 pb-4 border-t border-gray-100 bg-white">
@@ -141,7 +171,7 @@ export default function ElevationProfile({ route }: { route: Route }) {
           className="w-full"
           preserveAspectRatio="none"
         >
-          <polygon points={profile.fillPoints} fill={colorOpaque} />
+          <polygon points={profile.fillPoints} fill={color + "33"} />
           <polyline
             points={profile.svgPoints}
             fill="none"
@@ -149,6 +179,42 @@ export default function ElevationProfile({ route }: { route: Route }) {
             strokeWidth="1.5"
             strokeLinejoin="round"
           />
+
+          {/* Stage dividers */}
+          {multiStage &&
+            profile.stageInfos
+              .slice(0, -1)
+              .map((s, i) => (
+                <line
+                  key={i}
+                  x1={profile.toX(s.endDist)}
+                  y1={0}
+                  x2={profile.toX(s.endDist)}
+                  y2={profile.H}
+                  stroke="#9ca3af"
+                  strokeWidth={1}
+                  strokeDasharray="3,2"
+                />
+              ))}
+
+          {/* Clickable stage regions */}
+          {onStageClick &&
+            multiStage &&
+            profile.stageInfos.map((s, i) => (
+              <rect
+                key={i}
+                x={profile.toX(s.startDist)}
+                y={0}
+                width={profile.toX(s.endDist) - profile.toX(s.startDist)}
+                height={profile.H}
+                fill="transparent"
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStageClick(s.midLat, s.midLon);
+                }}
+              />
+            ))}
         </svg>
       </div>
 
@@ -158,6 +224,27 @@ export default function ElevationProfile({ route }: { route: Route }) {
         <Stat label="Nedstigning" value={`↓ ${profile.descent} m`} />
         <Stat label="Est. tid" value={formatTime(profile.estimatedHours)} />
       </div>
+
+      {/* Per-stage breakdown */}
+      {multiStage && onStageClick && (
+        <div className="mt-2.5 space-y-1">
+          <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+            Etapper — trykk for å zoome
+          </p>
+          {profile.stageInfos.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => onStageClick(s.midLat, s.midLon)}
+              className="w-full flex items-center justify-between text-xs text-gray-600 hover:text-green-700 hover:bg-green-50 rounded px-2 py-1 transition-colors text-left"
+            >
+              <span className="font-medium">Etappe {i + 1}</span>
+              <span className="text-gray-400">
+                {s.distance} km · ↑{s.ascent} m · {formatTime(s.estimatedHours)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

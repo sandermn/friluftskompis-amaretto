@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -72,6 +72,62 @@ function routeToPositions(geojson: {
     const lines = geojson.coordinates as [number, number][][];
     return lines.map((line) => line.map(([lon, lat]) => [lat, lon]));
   }
+  return [];
+}
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function slopeColor(altDiff: number, distKm: number): string {
+  if (distKm < 0.001) return "#16a34a";
+  const grade = Math.abs(altDiff) / (distKm * 1000);
+  if (grade < 0.1) return "#16a34a"; // Enkel
+  if (grade < 0.2) return "#ca8a04"; // Middels
+  return "#dc2626"; // Krevende
+}
+
+function buildColorRuns(
+  coords: [number, number, number][],
+): { positions: [number, number][]; color: string }[] {
+  const runs: { positions: [number, number][]; color: string }[] = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [lon1, lat1, alt1 = 0] = coords[i];
+    const [lon2, lat2, alt2 = 0] = coords[i + 1];
+    const dist = haversineKm(lat1, lon1, lat2, lon2);
+    const color = slopeColor(alt2 - alt1, dist);
+    const last = runs[runs.length - 1];
+    if (last?.color === color) {
+      last.positions.push([lat2, lon2]);
+    } else {
+      runs.push({
+        positions: [
+          [lat1, lon1],
+          [lat2, lon2],
+        ],
+        color,
+      });
+    }
+  }
+  return runs;
+}
+
+function extractAllCoords(geojson: {
+  type: string;
+  coordinates: unknown;
+}): [number, number, number][] {
+  if (geojson.type === "LineString")
+    return geojson.coordinates as [number, number, number][];
+  if (geojson.type === "MultiLineString")
+    return (geojson.coordinates as [number, number, number][][]).flat();
   return [];
 }
 
@@ -184,55 +240,108 @@ export default function DntMap({
           const isSelected =
             selectedLocation?.id === `route-${route.id}` ||
             selectedLocation?.id === `dnt-g-${route.id}`;
+
+          const clickPayload: SearchResult = {
+            id: `route-${route.id}`,
+            name: route.name,
+            category: "route",
+            subtitle: route.omrade ?? undefined,
+            lat: route.lat,
+            lon: route.lon,
+          };
+
+          if (isSelected) {
+            // Slope-colored segments for selected route
+            const coords = extractAllCoords(route.geojson);
+            const runs = buildColorRuns(coords);
+            return (
+              <Fragment key={route.id}>
+                {runs.map((run, i) => (
+                  <Polyline
+                    key={i}
+                    positions={run.positions}
+                    pathOptions={{ color: run.color, weight: 5, opacity: 1 }}
+                    eventHandlers={{
+                      click: () => onSelectLocation(clickPayload),
+                    }}
+                  >
+                    {i === 0 && (
+                      <Popup minWidth={260}>
+                        <div className="font-sans w-64">
+                          <p className="font-semibold text-sm text-gray-900 mb-0.5 leading-snug">
+                            {route.name}
+                          </p>
+                          {route.omrade && (
+                            <p className="text-xs text-gray-500 mb-1">
+                              {route.omrade}
+                            </p>
+                          )}
+                          <div className="text-xs text-gray-600 flex gap-3 mb-2">
+                            {route.distanceKm && (
+                              <span>
+                                <span className="font-medium">Lengde:</span>{" "}
+                                {route.distanceKm} km
+                              </span>
+                            )}
+                            {route.vanskelighet !== "Ukjent" && (
+                              <span>
+                                <span className="font-medium">
+                                  Vanskelighet:
+                                </span>{" "}
+                                {route.vanskelighet}
+                              </span>
+                            )}
+                          </div>
+                          <ElevationProfile
+                            route={route}
+                            onStageClick={(lat, lon) =>
+                              onSelectLocation({ ...clickPayload, lat, lon })
+                            }
+                          />
+                        </div>
+                      </Popup>
+                    )}
+                  </Polyline>
+                ))}
+              </Fragment>
+            );
+          }
+
+          // Non-selected: single uniform purple polyline
           const segments = routeToPositions(route.geojson);
-          return segments.map((positions, i) => (
-            <Polyline
-              key={`${route.id}-${i}`}
-              positions={positions}
-              pathOptions={{
-                color: isSelected ? "#7c3aed" : "#a78bfa",
-                weight: isSelected ? 5 : 2,
-                opacity: isSelected ? 1 : 0.55,
-              }}
-              eventHandlers={{
-                click: () =>
-                  onSelectLocation({
-                    id: `route-${route.id}`,
-                    name: route.name,
-                    category: "route",
-                    subtitle: route.omrade ?? undefined,
-                    lat: route.lat,
-                    lon: route.lon,
-                  }),
-              }}
-            >
-              <Popup minWidth={260}>
-                <div className="font-sans w-64">
-                  <p className="font-semibold text-sm text-gray-900 mb-0.5 leading-snug">
-                    {route.name}
-                  </p>
-                  {route.omrade && (
-                    <p className="text-xs text-gray-500 mb-1">{route.omrade}</p>
-                  )}
-                  <div className="text-xs text-gray-600 flex gap-3 mb-2">
-                    {route.distanceKm && (
-                      <span>
-                        <span className="font-medium">Lengde:</span>{" "}
-                        {route.distanceKm} km
-                      </span>
-                    )}
-                    {route.vanskelighet !== "Ukjent" && (
-                      <span>
-                        <span className="font-medium">Vanskelighet:</span>{" "}
-                        {route.vanskelighet}
-                      </span>
-                    )}
-                  </div>
-                  <ElevationProfile route={route} />
-                </div>
-              </Popup>
-            </Polyline>
-          ));
+          return (
+            <Fragment key={route.id}>
+              {segments.map((positions, i) => (
+                <Polyline
+                  key={i}
+                  positions={positions}
+                  pathOptions={{ color: "#a78bfa", weight: 2, opacity: 0.55 }}
+                  eventHandlers={{
+                    click: () => onSelectLocation(clickPayload),
+                  }}
+                >
+                  <Popup minWidth={200}>
+                    <div className="font-sans">
+                      <p className="font-semibold text-sm text-gray-900 mb-0.5">
+                        {route.name}
+                      </p>
+                      {route.omrade && (
+                        <p className="text-xs text-gray-500 mb-1">
+                          {route.omrade}
+                        </p>
+                      )}
+                      <div className="text-xs text-gray-600 flex gap-3">
+                        {route.distanceKm && <span>{route.distanceKm} km</span>}
+                        {route.vanskelighet !== "Ukjent" && (
+                          <span>{route.vanskelighet}</span>
+                        )}
+                      </div>
+                    </div>
+                  </Popup>
+                </Polyline>
+              ))}
+            </Fragment>
+          );
         })}
 
         {cabins
