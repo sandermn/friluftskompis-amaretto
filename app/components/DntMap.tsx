@@ -180,7 +180,9 @@ export default function DntMap({
 
         {routes.map((route) => {
           if (!route.geojson) return null;
-          const isSelected = selectedLocation?.id === `route-${route.id}`;
+          const isSelected =
+            selectedLocation?.id === `route-${route.id}` ||
+            selectedLocation?.id === `dnt-g-${route.id}`;
           const segments = routeToPositions(route.geojson);
           return segments.map((positions, i) => (
             <Polyline

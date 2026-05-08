@@ -81,6 +81,7 @@ export default function TurforslaggerList({
   const matchedRoute = selectedLocation
     ? routes.find((route) => {
         if (selectedLocation.id === `route-${route.id}`) return true;
+        if (selectedLocation.id === `dnt-g-${route.id}`) return true;
         if (isCoordinateMatch(route, selectedLocation)) return true;
         return normalize(route.name) === normalize(selectedLocation.name);
       })

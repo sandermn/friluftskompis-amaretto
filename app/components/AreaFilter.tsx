@@ -16,6 +16,12 @@ export default function AreaFilter({ selectedId, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (open) {
+      inputRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
     fetch("/api/areas")
       .then((r) => r.json())
       .then(setAreas)
@@ -36,7 +42,6 @@ export default function AreaFilter({ selectedId, onChange }: Props) {
   function handleOpen() {
     setOpen(true);
     setQuery("");
-    setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   function handleSelect(area: DntArea | null) {
@@ -98,9 +103,7 @@ export default function AreaFilter({ selectedId, onChange }: Props) {
           </div>
           <ul className="max-h-64 overflow-y-auto">
             {filtered.length === 0 && (
-              <li className="px-3 py-2 text-sm text-gray-400">
-                Ingen treff
-              </li>
+              <li className="px-3 py-2 text-sm text-gray-400">Ingen treff</li>
             )}
             {filtered.map((area) => (
               <li
