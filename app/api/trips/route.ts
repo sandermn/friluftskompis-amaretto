@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
       routeLon,
       tripTitle,
       date,
+      startTime,
       description,
       packingList,
     } = body;
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
       routeLon: String(routeLon),
       tripTitle: tripTitle.trim().slice(0, 80),
       date: String(date),
+      startTime: startTime ? String(startTime).slice(0, 5) : null,
       description: String(description ?? "").slice(0, 500),
       packingList: packingList ?? null,
     });

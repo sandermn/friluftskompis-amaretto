@@ -5,8 +5,7 @@ import WeatherForecast from "./WeatherForecast";
 import ElevationProfile from "./ElevationProfile";
 import TripCreateModal from "./TripCreateModal";
 import TripSharePanel from "./TripSharePanel";
-import AiBadge, { KildeBadge } from "./AiBadge";
-import PackingList from "./PackingList";
+import { KildeBadge } from "./AiBadge";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 

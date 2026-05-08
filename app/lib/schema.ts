@@ -20,6 +20,7 @@ export const trips = pgTable("trips", {
   routeLon: text("route_lon").notNull(),
   tripTitle: text("trip_title").notNull(),
   date: varchar("date", { length: 10 }).notNull(),
+  startTime: varchar("start_time", { length: 5 }),
   description: text("description").notNull().default(""),
   packingList: json("packing_list").$type<PackingListResponse>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -32,4 +33,15 @@ export const participants = pgTable("participants", {
     .references(() => trips.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 40 }).notNull(),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
+});
+
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  tripId: varchar("trip_id", { length: 12 })
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  paidBy: varchar("paid_by", { length: 40 }).notNull(),
+  description: varchar("description", { length: 100 }).notNull(),
+  amountOre: integer("amount_ore").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
