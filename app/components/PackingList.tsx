@@ -149,7 +149,8 @@ export default function PackingList({
 
   // Stable key so we don't refetch on every keystroke
   const fetchKey = useMemo(
-    () => `${participants}-${days}-${weather ? JSON.stringify(weather) : "noweather"}`,
+    () =>
+      `${participants}-${days}-${weather ? JSON.stringify(weather) : "noweather"}`,
     [participants, days, weather],
   );
   const lastFetchedKey = useRef<string | null>(null);
@@ -191,7 +192,8 @@ export default function PackingList({
   function toggleItem(key: string) {
     setChecked((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
@@ -231,7 +233,11 @@ export default function PackingList({
             disabled={status === "loading"}
             className="text-[10px] px-2 py-1 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 focus:ring-2 focus:ring-green-500 focus:ring-offset-1 outline-none transition-colors"
           >
-            {status === "loading" ? "Genererer…" : list ? "Oppdater" : "Generer"}
+            {status === "loading"
+              ? "Genererer…"
+              : list
+                ? "Oppdater"
+                : "Generer"}
           </button>
         </div>
       </div>
@@ -239,7 +245,9 @@ export default function PackingList({
       {/* Weather summary strip */}
       {weather && (
         <div className="px-3 pb-1.5 flex gap-3 text-[10px] text-gray-600">
-          <span>🌡️ {Math.round(weather.tempMin)}–{Math.round(weather.tempMax)} °C</span>
+          <span>
+            🌡️ {Math.round(weather.tempMin)}–{Math.round(weather.tempMax)} °C
+          </span>
           <span>💧 {weather.precipTotal} mm</span>
           <span>💨 {Math.round(weather.windMax)} m/s</span>
           {weather.hasSnow && <span>❄️ Snø/is</span>}
