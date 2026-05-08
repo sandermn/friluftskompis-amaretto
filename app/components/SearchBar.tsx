@@ -33,13 +33,18 @@ export default function SearchBar({ onSelect }: Props) {
   const debouncedQuery = useDebounce(query, 250);
 
   useEffect(() => {
-    if (debouncedQuery.length < 3) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    setLoading(true);
     const controller = new AbortController();
+
+    if (debouncedQuery.length < 3) {
+      // schedule as microtask to avoid synchronous setState in effect body
+      Promise.resolve().then(() => {
+        setResults([]);
+        setOpen(false);
+      });
+      return () => controller.abort();
+    }
+
+    setLoading(true);
     fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`, {
       signal: controller.signal,
     })
