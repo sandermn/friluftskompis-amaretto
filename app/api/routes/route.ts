@@ -76,7 +76,7 @@ export async function GET() {
         Origin: "https://ut.no",
       },
       body: JSON.stringify({
-        query: `{ routes(paging: { first: 100 }) { edges { node { ${FIELDS} } } } }`,
+        query: `{ routes(paging: { first: 30 }) { edges { node { ${FIELDS} } } } }`,
       }),
       next: { revalidate: 3600 },
     });
@@ -87,23 +87,24 @@ export async function GET() {
     const edges: RouteEdge[] = json?.data?.routes?.edges ?? [];
 
     const routes = edges
+      .filter((e) => e.node.distance && e.node.distance > 0)
       .map((e) => {
-        const n = e.node;
-        const center = centroid(n.geojson);
+        const node = e.node;
+        const center = centroid(node.geojson);
         return {
-          id: n.id,
-          name: n.name,
-          beskrivelse: n.descriptionAb?.slice(0, 200) ?? null,
-          vanskelighet: gradingLabel(n.gradingAb),
-          gradingRaw: GRADING_ORDER[n.gradingAb ?? ""] ?? 0,
-          distanceKm: n.distance ? Math.round(n.distance / 1000) : null,
-          omrade: n.counties?.[0]?.name ?? null,
+          id: node.id,
+          name: node.name,
+          beskrivelse: node.descriptionAb?.slice(0, 200) ?? null,
+          vanskelighet: gradingLabel(node.gradingAb),
+          gradingRaw: GRADING_ORDER[node.gradingAb ?? ""] ?? 0,
+          distanceKm: node.distance ? Math.round(node.distance / 1000) : null,
+          omrade: node.counties?.[0]?.name ?? null,
           lat: center?.[0] ?? null,
           lon: center?.[1] ?? null,
-          geojson: n.geojson ?? null,
+          geojson: node.geojson ?? null,
         };
       })
-      .filter((r) => r.lat !== null && r.name);
+      .filter((route) => route.lat !== null && route.name);
 
     return Response.json({ routes });
   } catch {

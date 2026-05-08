@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -12,6 +12,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
+import ElevationProfile from "./ElevationProfile";
 
 type ServiceLevel =
   | "STAFFED"
@@ -71,6 +72,68 @@ function routeToPositions(geojson: {
     const lines = geojson.coordinates as [number, number][][];
     return lines.map((line) => line.map(([lon, lat]) => [lat, lon]));
   }
+  return [];
+}
+
+const SLOPE_COLOR_EASY = "#16a34a";
+const SLOPE_COLOR_MODERATE = "#ca8a04";
+const SLOPE_COLOR_HARD = "#dc2626";
+const ROUTE_COLOR_UNSELECTED = "#a78bfa";
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const sinSqHalf =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(sinSqHalf), Math.sqrt(1 - sinSqHalf));
+}
+
+function slopeColor(altDiff: number, distKm: number): string {
+  if (distKm < 0.001) return SLOPE_COLOR_EASY;
+  const grade = Math.abs(altDiff) / (distKm * 1000);
+  if (grade < 0.1) return SLOPE_COLOR_EASY;
+  if (grade < 0.2) return SLOPE_COLOR_MODERATE;
+  return SLOPE_COLOR_HARD;
+}
+
+function buildColorRuns(
+  coords: [number, number, number][],
+): { positions: [number, number][]; color: string }[] {
+  const runs: { positions: [number, number][]; color: string }[] = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [lon1, lat1, alt1 = 0] = coords[i];
+    const [lon2, lat2, alt2 = 0] = coords[i + 1];
+    const dist = haversineKm(lat1, lon1, lat2, lon2);
+    const color = slopeColor(alt2 - alt1, dist);
+    const last = runs[runs.length - 1];
+    if (last?.color === color) {
+      last.positions.push([lat2, lon2]);
+    } else {
+      runs.push({
+        positions: [
+          [lat1, lon1],
+          [lat2, lon2],
+        ],
+        color,
+      });
+    }
+  }
+  return runs;
+}
+
+/** Extract per-line coordinate arrays without flattening across stages */
+function extractLineSegments(geojson: {
+  type: string;
+  coordinates: unknown;
+}): [number, number, number][][] {
+  if (geojson.type === "LineString")
+    return [geojson.coordinates as [number, number, number][]];
+  if (geojson.type === "MultiLineString")
+    return geojson.coordinates as [number, number, number][][];
   return [];
 }
 
@@ -183,54 +246,141 @@ export default function DntMap({
           const isSelected =
             selectedLocation?.id === `route-${route.id}` ||
             selectedLocation?.id === `dnt-g-${route.id}`;
-          const segments = routeToPositions(route.geojson);
-          return segments.map((positions, i) => (
-            <Polyline
-              key={`${route.id}-${i}`}
-              positions={positions}
-              pathOptions={{
-                color: isSelected ? "#7c3aed" : "#a78bfa",
-                weight: isSelected ? 5 : 2,
-                opacity: isSelected ? 1 : 0.55,
-              }}
-              eventHandlers={{
-                click: () =>
-                  onSelectLocation({
-                    id: `route-${route.id}`,
-                    name: route.name,
-                    category: "route",
-                    subtitle: route.omrade ?? undefined,
-                    lat: route.lat,
-                    lon: route.lon,
-                  }),
-              }}
-            >
-              <Popup>
-                <div className="min-w-[180px] font-sans">
-                  <p className="font-semibold text-sm text-gray-900 mb-1 leading-snug">
+
+          const clickPayload: SearchResult = {
+            id: `route-${route.id}`,
+            name: route.name,
+            category: "route",
+            subtitle: route.omrade ?? undefined,
+            lat: route.lat,
+            lon: route.lon,
+          };
+
+          if (isSelected) {
+            const lineSegments = extractLineSegments(route.geojson);
+            const hasAltitude = lineSegments.some((seg) =>
+              seg.some(([, , alt]) => alt != null),
+            );
+            const runs = hasAltitude
+              ? lineSegments.flatMap((seg) => buildColorRuns(seg))
+              : routeToPositions(route.geojson)
+                  .flat()
+                  .map((pos) => ({
+                    positions: [pos] as [number, number][],
+                    color: SLOPE_COLOR_EASY,
+                  }));
+
+            const routePopup = (
+              <Popup minWidth={260}>
+                <div className="font-sans w-64">
+                  <p className="font-semibold text-sm text-gray-900 mb-0.5 leading-snug">
                     {route.name}
                   </p>
                   {route.omrade && (
                     <p className="text-xs text-gray-500 mb-1">{route.omrade}</p>
                   )}
-                  <div className="text-xs text-gray-600 space-y-0.5">
+                  <div className="text-xs text-gray-600 flex gap-3 mb-2">
                     {route.distanceKm && (
-                      <p>
+                      <span>
                         <span className="font-medium">Lengde:</span>{" "}
                         {route.distanceKm} km
-                      </p>
+                      </span>
                     )}
                     {route.vanskelighet !== "Ukjent" && (
-                      <p>
+                      <span>
                         <span className="font-medium">Vanskelighet:</span>{" "}
                         {route.vanskelighet}
-                      </p>
+                      </span>
                     )}
                   </div>
+                  <ElevationProfile
+                    route={route}
+                    onStageClick={(lat, lon) =>
+                      onSelectLocation({ ...clickPayload, lat, lon })
+                    }
+                  />
                 </div>
               </Popup>
-            </Polyline>
-          ));
+            );
+
+            return (
+              <Fragment key={route.id}>
+                {hasAltitude
+                  ? runs.map((run, i) => (
+                      <Polyline
+                        key={i}
+                        positions={run.positions}
+                        pathOptions={{
+                          color: run.color,
+                          weight: 5,
+                          opacity: 1,
+                        }}
+                        eventHandlers={{
+                          click: () => onSelectLocation(clickPayload),
+                        }}
+                      >
+                        {routePopup}
+                      </Polyline>
+                    ))
+                  : routeToPositions(route.geojson).map((positions, i) => (
+                      <Polyline
+                        key={i}
+                        positions={positions}
+                        pathOptions={{
+                          color: SLOPE_COLOR_EASY,
+                          weight: 5,
+                          opacity: 1,
+                        }}
+                        eventHandlers={{
+                          click: () => onSelectLocation(clickPayload),
+                        }}
+                      >
+                        {routePopup}
+                      </Polyline>
+                    ))}
+              </Fragment>
+            );
+          }
+
+          // Non-selected: single uniform polyline
+          const segments = routeToPositions(route.geojson);
+          return (
+            <Fragment key={route.id}>
+              {segments.map((positions, i) => (
+                <Polyline
+                  key={i}
+                  positions={positions}
+                  pathOptions={{
+                    color: ROUTE_COLOR_UNSELECTED,
+                    weight: 2,
+                    opacity: 0.55,
+                  }}
+                  eventHandlers={{
+                    click: () => onSelectLocation(clickPayload),
+                  }}
+                >
+                  <Popup minWidth={200}>
+                    <div className="font-sans">
+                      <p className="font-semibold text-sm text-gray-900 mb-0.5">
+                        {route.name}
+                      </p>
+                      {route.omrade && (
+                        <p className="text-xs text-gray-500 mb-1">
+                          {route.omrade}
+                        </p>
+                      )}
+                      <div className="text-xs text-gray-600 flex gap-3">
+                        {route.distanceKm && <span>{route.distanceKm} km</span>}
+                        {route.vanskelighet !== "Ukjent" && (
+                          <span>{route.vanskelighet}</span>
+                        )}
+                      </div>
+                    </div>
+                  </Popup>
+                </Polyline>
+              ))}
+            </Fragment>
+          );
         })}
 
         {cabins
