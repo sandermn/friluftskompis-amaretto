@@ -26,6 +26,12 @@ app/
 
 State for the map lives in `MapLoader`. `DntMap` is a pure display component that receives props.
 
+## Workflow
+
+After applying any code changes, always run:
+1. `npm run lint` — fix any ESLint errors before finishing
+2. `npx prettier --write <changed files>` — format changed files
+
 ## Rules
 
 - `dynamic(() => import(...), { ssr: false })` is only allowed inside Client Components — Next.js 16 will error if used in a Server Component.
