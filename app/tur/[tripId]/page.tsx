@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "../../lib/db";
-import { trips, participants } from "../../lib/schema";
-import { eq } from "drizzle-orm";
+import { trips, participants, expenses } from "../../lib/schema";
+import { eq, count } from "drizzle-orm";
 import InvitePageClient from "./InvitePageClient";
 
 export async function generateMetadata({
@@ -20,10 +20,10 @@ export async function generateMetadata({
     return { title: "Tur ikke funnet" };
   }
 
-  const memberCount = await db.$count(
-    participants,
-    eq(participants.tripId, tripId),
-  );
+  const [{ memberCount }] = await db
+    .select({ memberCount: count() })
+    .from(participants)
+    .where(eq(participants.tripId, tripId));
 
   const date = new Date(trip.date).toLocaleDateString("nb-NO", {
     weekday: "long",
@@ -79,10 +79,16 @@ export default async function TurPage({
 
   if (!trip) notFound();
 
-  const members = await db.query.participants.findMany({
-    where: eq(participants.tripId, tripId),
-    orderBy: (p, { asc }) => [asc(p.joinedAt)],
-  });
+  const [members, tripExpenses] = await Promise.all([
+    db.query.participants.findMany({
+      where: eq(participants.tripId, tripId),
+      orderBy: (p, { asc }) => [asc(p.joinedAt)],
+    }),
+    db.query.expenses.findMany({
+      where: eq(expenses.tripId, tripId),
+      orderBy: (e, { asc }) => [asc(e.createdAt)],
+    }),
+  ]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { adminToken: _adminToken, ...tripPublic } = trip;
@@ -95,6 +101,7 @@ export default async function TurPage({
         routeLon: String(tripPublic.routeLon),
       }}
       initialParticipants={members}
+      initialExpenses={tripExpenses}
     />
   );
 }

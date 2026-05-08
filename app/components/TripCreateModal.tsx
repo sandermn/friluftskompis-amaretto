@@ -14,6 +14,7 @@ interface Props {
 export default function TripCreateModal({ route, onClose, onCreated }: Props) {
   const [tripTitle, setTripTitle] = useState(`Tur: ${route.name}`);
   const [date, setDate] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
   const [description, setDescription] = useState("");
   const [packingList, setPackingList] = useState<PackingListResponse | null>(
     null,
@@ -52,7 +53,9 @@ export default function TripCreateModal({ route, onClose, onCreated }: Props) {
           routeLon: route.lon,
           tripTitle,
           date,
+          startTime,
           description,
+          routeGeojson: route.geojson,
           packingList,
         }),
       });
@@ -140,6 +143,22 @@ export default function TripCreateModal({ route, onClose, onCreated }: Props) {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="trip-start-time"
+              className="block text-xs font-medium text-gray-700 mb-1"
+            >
+              Starttid
+            </label>
+            <input
+              id="trip-start-time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>

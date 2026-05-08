@@ -45,6 +45,9 @@ When a task is finished, add it to this list before committing.
 - F5 — Invitere deltakere
 - F6 — AI-pakkeliste
 - F10 — Discover/Journey
+- F7 — Rute og tidslinje
+- F8 — Offline tilgang
+- F9 — Etteroppgjør
 - F19 — Sosial deling
 - F20 — Administrasjon og observabilitet
 - GS1 — Live URL

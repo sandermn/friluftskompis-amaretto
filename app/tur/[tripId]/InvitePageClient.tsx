@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import WeatherForecast from "../../components/WeatherForecast";
+import TripTimeline from "../../components/TripTimeline";
+import ExpenseTracker from "../../components/ExpenseTracker";
 import type { PackingListResponse } from "../../api/packing-list/route";
 import type { Route } from "../../page";
 
@@ -22,6 +24,14 @@ interface Participant {
   joinedAt: string | Date;
 }
 
+interface Expense {
+  id: number;
+  paidBy: string;
+  description: string;
+  amountOre: number;
+  sharedBy: string[] | null;
+}
+
 interface TripData {
   id: string;
   routeId: number;
@@ -32,14 +42,19 @@ interface TripData {
   routeLon: string;
   tripTitle: string;
   date: string;
+  startTime: string | null;
   description: string;
+  routeGeojson: unknown;
   packingList: PackingListResponse | null;
 }
 
 interface Props {
   trip: TripData;
   initialParticipants: Participant[];
+  initialExpenses: Expense[];
 }
+
+const OFFLINE_KEY = (id: string) => `friluftskompis:offline:${id}`;
 
 function buildRoute(trip: TripData): Route {
   return {
@@ -74,7 +89,11 @@ function formatJoined(iso: string | Date) {
   });
 }
 
-export default function InvitePageClient({ trip, initialParticipants }: Props) {
+export default function InvitePageClient({
+  trip,
+  initialParticipants,
+  initialExpenses,
+}: Props) {
   const [participants, setParticipants] =
     useState<Participant[]>(initialParticipants);
   const [name, setName] = useState("");
@@ -82,6 +101,31 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
   const [joinError, setJoinError] = useState<string | null>(null);
   const hasJoinedRef = useRef(false);
   const [hasJoined, setHasJoined] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
+  // Detect online/offline
+  useEffect(() => {
+    const sync = () => setIsOffline(!navigator.onLine);
+    sync();
+    window.addEventListener("offline", sync);
+    window.addEventListener("online", sync);
+    return () => {
+      window.removeEventListener("offline", sync);
+      window.removeEventListener("online", sync);
+    };
+  }, []);
+
+  // Cache trip data for offline use (F8)
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        OFFLINE_KEY(trip.id),
+        JSON.stringify({ trip, participants }),
+      );
+    } catch {
+      // storage full — ignore
+    }
+  }, [trip, participants]);
 
   useEffect(() => {
     const key = `friluftskompis:joined:${trip.id}`;
@@ -94,7 +138,7 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
   // Poll participant list every 10s
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (document.hidden) return;
+      if (document.hidden || isOffline) return;
       try {
         const res = await fetch(`/api/trips/${trip.id}`);
         if (res.ok) {
@@ -106,7 +150,7 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
       }
     }, 10_000);
     return () => clearInterval(interval);
-  }, [trip.id]);
+  }, [trip.id, isOffline]);
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -133,7 +177,10 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
     }
   }
 
-  const route = buildRoute(trip);
+  const route = useMemo(
+    () => ({ ...buildRoute(trip), geojson: trip.routeGeojson ?? null }),
+    [trip],
+  );
   const selectedLocation = {
     id: `route-${trip.routeId}`,
     name: trip.routeName,
@@ -144,6 +191,13 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {/* Offline banner (F8) */}
+      {isOffline && (
+        <div className="bg-amber-500 text-white text-xs text-center py-1.5 px-4 shrink-0">
+          Du er offline — viser lagret turinfo
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-100 shadow-sm px-5 py-4 shrink-0">
         <div className="max-w-3xl mx-auto">
@@ -163,15 +217,24 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
                   : ""}
               </p>
             </div>
-            <Link
-              href="/"
-              className="text-xs text-green-700 hover:underline shrink-0 mt-1"
-            >
-              Friluftskompis
-            </Link>
+            <div className="flex items-center gap-3 shrink-0 mt-1">
+              <Link
+                href={`/tur/${trip.id}/print`}
+                target="_blank"
+                className="text-xs text-blue-600 hover:underline"
+              >
+                📄 Last ned PDF
+              </Link>
+              <Link href="/" className="text-xs text-green-700 hover:underline">
+                Friluftskompis
+              </Link>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-3 text-sm text-gray-700">
             <span className="font-medium">📅 {formatDate(trip.date)}</span>
+            {trip.startTime && (
+              <span className="text-gray-500">🕘 {trip.startTime}</span>
+            )}
             {trip.description && (
               <span className="text-gray-500">{trip.description}</span>
             )}
@@ -188,6 +251,16 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
               selectedLocation={selectedLocation}
               selectedAreaId={null}
               onSelectLocation={() => {}}
+            />
+          </section>
+
+          {/* Timeline (F7) */}
+          <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <TripTimeline
+              startTime={trip.startTime}
+              distanceKm={trip.routeDistanceKm}
+              vanskelighet={trip.routeVanskelighet}
+              date={trip.date}
             />
           </section>
 
@@ -300,6 +373,15 @@ export default function InvitePageClient({ trip, initialParticipants }: Props) {
                 )}
               </>
             )}
+          </section>
+
+          {/* Expense tracker (F9) */}
+          <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <ExpenseTracker
+              tripId={trip.id}
+              participantNames={participants.map((p) => p.name)}
+              initialExpenses={initialExpenses}
+            />
           </section>
         </div>
       </div>
