@@ -5,14 +5,6 @@ import WeatherForecast from "./WeatherForecast";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
-function getSeason(): string {
-  const month = new Date().getMonth() + 1;
-  if (month >= 3 && month <= 5) return "vår";
-  if (month >= 6 && month <= 8) return "sommer";
-  if (month >= 9 && month <= 11) return "høst";
-  return "vinter";
-}
-
 const VANSKELIGHET_COLOR: Record<string, string> = {
   Enkel: "bg-green-100 text-green-800",
   Middels: "bg-yellow-100 text-yellow-800",
@@ -27,10 +19,18 @@ const SEASON_LABEL: Record<string, string> = {
   vinter: "❄️ Vinter",
 };
 
+const SEASON_SORT_LABEL: Record<string, string> = {
+  sommer: "mest krevende først",
+  vinter: "enklest først",
+  vår: "kortest først",
+  høst: "kortest først",
+};
+
 interface TurforslaggerListProps {
   routes: Route[];
   loading: boolean;
   error: boolean;
+  season: string;
   onSelectLocation: (location: SearchResult | null) => void;
   selectedLocation: SearchResult | null;
 }
@@ -51,13 +51,12 @@ export default function TurforslaggerList({
   routes,
   loading,
   error,
+  season,
   onSelectLocation,
   selectedLocation,
 }: TurforslaggerListProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const lastScrolledLocationIdRef = useRef<string | null>(null);
-
-  const season = getSeason();
 
   function handleTripClick(tur: Route, isSelected: boolean) {
     const nextSelectedId = isSelected ? null : tur.id;
@@ -107,7 +106,10 @@ export default function TurforslaggerList({
     <aside className="w-80 shrink-0 h-full overflow-y-auto bg-white border-r border-gray-100 flex flex-col">
       <div className="px-4 py-3 border-b border-gray-100">
         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-          Anbefalte turer · {SEASON_LABEL[season]}
+          {SEASON_LABEL[season]} · {routes.length} turer
+        </p>
+        <p className="text-[10px] text-gray-400 mt-0.5">
+          Sortert etter popularitet · {SEASON_SORT_LABEL[season]}
         </p>
       </div>
 

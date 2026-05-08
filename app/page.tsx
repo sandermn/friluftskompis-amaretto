@@ -21,6 +21,35 @@ export interface Route {
   geojson: { type: string; coordinates: unknown } | null;
 }
 
+type Difficulty = "Enkel" | "Middels" | "Krevende";
+type Duration = "kort" | "middels" | "lang";
+
+const SEASONS = [
+  { key: "vinter", label: "❄️ Vinter" },
+  { key: "vår", label: "🌱 Vår" },
+  { key: "sommer", label: "☀️ Sommer" },
+  { key: "høst", label: "🍂 Høst" },
+];
+
+const DURATIONS: {
+  key: Duration;
+  label: string;
+  min?: number;
+  max?: number;
+}[] = [
+  { key: "kort", label: "< 10 km", max: 10 },
+  { key: "middels", label: "10–25 km", min: 10, max: 25 },
+  { key: "lang", label: "> 25 km", min: 25 },
+];
+
+function getCurrentSeason(): string {
+  const m = new Date().getMonth() + 1;
+  if (m >= 3 && m <= 5) return "vår";
+  if (m >= 6 && m <= 8) return "sommer";
+  if (m >= 9 && m <= 11) return "høst";
+  return "vinter";
+}
+
 export default function Home() {
   const [selectedLocation, setSelectedLocation] = useState<SearchResult | null>(
     null,
@@ -29,6 +58,10 @@ export default function Home() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [routesLoading, setRoutesLoading] = useState(true);
   const [routesError, setRoutesError] = useState(false);
+
+  const [season, setSeason] = useState<string>(getCurrentSeason());
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const [duration, setDuration] = useState<Duration | null>(null);
 
   useEffect(() => {
     fetch("/api/routes")
@@ -57,19 +90,71 @@ export default function Home() {
   }
 
   const displayedRoutes = useMemo(() => {
-    const base = routes.slice(0, 20);
+    let result = routes.slice(0, 100);
+
+    // Area / location filter
     const center = selectedArea
       ? { lat: selectedArea.centerLat, lon: selectedArea.centerLon }
       : selectedLocation?.category === "area"
         ? { lat: selectedLocation.lat, lon: selectedLocation.lon }
         : null;
-    if (!center) return base;
-    return base.filter(
-      (r) =>
-        Math.abs(r.lat - center.lat) <= 1.5 &&
-        Math.abs(r.lon - center.lon) <= 1.5,
-    );
-  }, [routes, selectedArea, selectedLocation]);
+    if (center) {
+      result = result.filter(
+        (r) =>
+          Math.abs(r.lat - center.lat) <= 1.5 &&
+          Math.abs(r.lon - center.lon) <= 1.5,
+      );
+    }
+
+    // Season filter: winter hides demanding routes
+    if (season === "vinter") {
+      result = result.filter((r) => r.vanskelighet !== "Krevende");
+    }
+
+    // Difficulty filter
+    if (difficulty) {
+      result = result.filter((r) => r.vanskelighet === difficulty);
+    }
+
+    // Duration filter
+    const dur = DURATIONS.find((d) => d.key === duration);
+    if (dur) {
+      result = result.filter((r) => {
+        if (r.distanceKm === null) return true;
+        if (dur.min !== undefined && r.distanceKm < dur.min) return false;
+        if (dur.max !== undefined && r.distanceKm > dur.max) return false;
+        return true;
+      });
+    }
+
+    // Season-based popularity sort
+    result = [...result].sort((a, b) => {
+      if (season === "sommer") {
+        // Summer: most challenging / popular routes first
+        return (b.gradingRaw ?? 0) - (a.gradingRaw ?? 0);
+      }
+      if (season === "vinter") {
+        // Winter: easiest routes first (safer)
+        return (a.gradingRaw ?? 0) - (b.gradingRaw ?? 0);
+      }
+      // Spring / autumn: shorter routes first (shoulder season)
+      return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
+    });
+
+    return result.slice(0, 20);
+  }, [routes, selectedArea, selectedLocation, season, difficulty, duration]);
+
+  function toggleDifficulty(d: Difficulty) {
+    setDifficulty((prev) => (prev === d ? null : d));
+  }
+
+  function toggleDuration(d: Duration) {
+    setDuration((prev) => (prev === d ? null : d));
+  }
+
+  function toggleSeason(s: string) {
+    setSeason((prev) => (prev === s ? getCurrentSeason() : s));
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -83,6 +168,7 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Search + area */}
       <div className="shrink-0 bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
         <AreaFilter
           selectedId={selectedArea?.id ?? null}
@@ -91,11 +177,54 @@ export default function Home() {
         <SearchBar onSelect={setSelectedLocation} />
       </div>
 
+      {/* Trip filters */}
+      <div className="shrink-0 bg-gray-50 border-b border-gray-100 px-4 py-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        <FilterGroup label="Sesong">
+          {SEASONS.map(({ key, label }) => (
+            <FilterChip
+              key={key}
+              active={season === key}
+              onClick={() => toggleSeason(key)}
+              color="green"
+            >
+              {label}
+            </FilterChip>
+          ))}
+        </FilterGroup>
+
+        <FilterGroup label="Vanskelighet">
+          {(["Enkel", "Middels", "Krevende"] as Difficulty[]).map((d) => (
+            <FilterChip
+              key={d}
+              active={difficulty === d}
+              onClick={() => toggleDifficulty(d)}
+              color="blue"
+            >
+              {d}
+            </FilterChip>
+          ))}
+        </FilterGroup>
+
+        <FilterGroup label="Varighet">
+          {DURATIONS.map(({ key, label }) => (
+            <FilterChip
+              key={key}
+              active={duration === key}
+              onClick={() => toggleDuration(key)}
+              color="purple"
+            >
+              {label}
+            </FilterChip>
+          ))}
+        </FilterGroup>
+      </div>
+
       <main className="flex-1 flex overflow-hidden">
         <TurforslaggerList
           routes={displayedRoutes}
           loading={routesLoading}
           error={routesError}
+          season={season}
           selectedLocation={selectedLocation}
           onSelectLocation={setSelectedLocation}
         />
@@ -109,5 +238,54 @@ export default function Home() {
         </div>
       </main>
     </div>
+  );
+}
+
+function FilterGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-gray-400 font-medium shrink-0">
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  color,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color: "green" | "blue" | "purple";
+  children: React.ReactNode;
+}) {
+  const activeClass =
+    color === "green"
+      ? "bg-green-600 text-white border-green-700"
+      : color === "blue"
+        ? "bg-blue-600 text-white border-blue-700"
+        : "bg-purple-600 text-white border-purple-700";
+
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors whitespace-nowrap ${
+        active
+          ? activeClass
+          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

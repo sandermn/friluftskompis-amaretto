@@ -16,7 +16,7 @@ interface RouteEdge {
     id: number;
     name: string;
     descriptionAb: string | null;
-    gradingAb: number | null;
+    gradingAb: string | null; // enum: EASY | MODERATE | TOUGH | VERY_TOUGH
     distance: number | null;
     counties: { name: string }[];
     geojson: {
@@ -27,6 +27,13 @@ interface RouteEdge {
     } | null;
   };
 }
+
+const GRADING_ORDER: Record<string, number> = {
+  EASY: 1,
+  MODERATE: 2,
+  TOUGH: 3,
+  VERY_TOUGH: 4,
+};
 
 /** Extract centroid [lat, lon] from LineString or MultiLineString geojson */
 function centroid(
@@ -52,12 +59,12 @@ function centroid(
   return null;
 }
 
-/** Map DNT grading (1–5 scale) to a label */
-function gradingLabel(grading: number | null): string {
-  if (grading === null || grading === undefined) return "Ukjent";
-  if (grading <= 1) return "Enkel";
-  if (grading <= 3) return "Middels";
-  return "Krevende";
+/** Map DNT grading enum to Norwegian label */
+function gradingLabel(grading: string | null): string {
+  if (!grading) return "Ukjent";
+  if (grading === "EASY") return "Enkel";
+  if (grading === "MODERATE") return "Middels";
+  return "Krevende"; // TOUGH | VERY_TOUGH
 }
 
 export async function GET() {
@@ -88,7 +95,7 @@ export async function GET() {
           name: n.name,
           beskrivelse: n.descriptionAb?.slice(0, 200) ?? null,
           vanskelighet: gradingLabel(n.gradingAb),
-          gradingRaw: n.gradingAb ?? 0,
+          gradingRaw: GRADING_ORDER[n.gradingAb ?? ""] ?? 0,
           distanceKm: n.distance ? Math.round(n.distance / 1000) : null,
           omrade: n.counties?.[0]?.name ?? null,
           lat: center?.[0] ?? null,
