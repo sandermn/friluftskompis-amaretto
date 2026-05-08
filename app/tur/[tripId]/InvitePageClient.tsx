@@ -6,6 +6,7 @@ import Link from "next/link";
 import WeatherForecast from "../../components/WeatherForecast";
 import TripTimeline from "../../components/TripTimeline";
 import ExpenseTracker from "../../components/ExpenseTracker";
+import CommentThread from "../../components/CommentThread";
 import type { PackingListResponse } from "../../api/packing-list/route";
 import type { Route } from "../../page";
 
@@ -48,10 +49,18 @@ interface TripData {
   packingList: PackingListResponse | null;
 }
 
+interface Comment {
+  id: number;
+  authorName: string;
+  body: string;
+  createdAt: string | Date;
+}
+
 interface Props {
   trip: TripData;
   initialParticipants: Participant[];
   initialExpenses: Expense[];
+  initialComments: Comment[];
 }
 
 const OFFLINE_KEY = (id: string) => `friluftskompis:offline:${id}`;
@@ -93,6 +102,7 @@ export default function InvitePageClient({
   trip,
   initialParticipants,
   initialExpenses,
+  initialComments,
 }: Props) {
   const [participants, setParticipants] =
     useState<Participant[]>(initialParticipants);
@@ -373,6 +383,17 @@ export default function InvitePageClient({
                 )}
               </>
             )}
+          </section>
+
+          {/* Comment thread (G5) */}
+          <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <CommentThread
+              tripId={trip.id}
+              participantNames={participants.map((p) => p.name)}
+              tripDate={trip.date}
+              routeName={trip.routeName}
+              initialComments={initialComments}
+            />
           </section>
 
           {/* Expense tracker (F9) */}

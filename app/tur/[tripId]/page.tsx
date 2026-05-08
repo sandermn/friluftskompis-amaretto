@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "../../lib/db";
-import { trips, participants, expenses } from "../../lib/schema";
+import { trips, participants, expenses, comments } from "../../lib/schema";
 import { eq, count } from "drizzle-orm";
 import InvitePageClient from "./InvitePageClient";
 
@@ -79,7 +79,7 @@ export default async function TurPage({
 
   if (!trip) notFound();
 
-  const [members, tripExpenses] = await Promise.all([
+  const [members, tripExpenses, tripComments] = await Promise.all([
     db.query.participants.findMany({
       where: eq(participants.tripId, tripId),
       orderBy: (p, { asc }) => [asc(p.joinedAt)],
@@ -87,6 +87,10 @@ export default async function TurPage({
     db.query.expenses.findMany({
       where: eq(expenses.tripId, tripId),
       orderBy: (e, { asc }) => [asc(e.createdAt)],
+    }),
+    db.query.comments.findMany({
+      where: eq(comments.tripId, tripId),
+      orderBy: (c, { asc }) => [asc(c.createdAt)],
     }),
   ]);
 
@@ -107,6 +111,7 @@ export default async function TurPage({
       }}
       initialParticipants={members}
       initialExpenses={tripExpenses}
+      initialComments={tripComments}
     />
   );
 }

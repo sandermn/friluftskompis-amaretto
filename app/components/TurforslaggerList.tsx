@@ -12,10 +12,10 @@ import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
 const VANSKELIGHET_COLOR: Record<string, string> = {
-  Enkel: "bg-green-100 text-green-900",
-  Middels: "bg-yellow-100 text-yellow-900",
-  Krevende: "bg-red-100 text-red-900",
-  Ukjent: "bg-gray-100 text-gray-700",
+  Enkel: "bg-[#e8f0e4] text-[#3d5a3e]",
+  Middels: "bg-[#f5eedd] text-[#7a6830]",
+  Krevende: "bg-[#f5e0dc] text-[#8a3a30]",
+  Ukjent: "bg-[#f3f1ec] text-[#7a7a72]",
 };
 
 const SEASON_LABEL: Record<string, string> = {
@@ -134,12 +134,12 @@ export default function TurforslaggerList({
           onClose={() => setSharedTripId(null)}
         />
       )}
-      <aside className="w-full flex-1 min-h-0 overflow-y-auto bg-white border-t border-gray-100 md:border-t-0 md:border-r md:w-80 md:shrink-0 md:flex-none flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+      <aside className="w-full h-full min-h-0 overflow-y-auto bg-[#faf9f6] flex flex-col">
+        <div className="px-5 pt-5 pb-3">
+          <p className="text-[11px] text-[#8a8a80] font-medium uppercase tracking-[0.1em]">
             {SEASON_LABEL[season]} · {routes.length} turer
           </p>
-          <p className="text-[11px] text-gray-600 mt-0.5">
+          <p className="text-[11px] text-[#a0a098] mt-0.5">
             Sortert etter popularitet · {SEASON_SORT_LABEL[season]}
           </p>
         </div>
@@ -149,9 +149,9 @@ export default function TurforslaggerList({
         )}
 
         {fallback && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100">
+          <div className="mx-5 mb-3 flex items-center gap-2 px-4 py-2.5 bg-[#f5eedd] rounded-xl">
             <svg
-              className="w-3.5 h-3.5 text-amber-600 shrink-0"
+              className="w-3.5 h-3.5 text-[#7a6830] shrink-0"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -160,75 +160,85 @@ export default function TurforslaggerList({
             >
               <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            <p className="text-xs text-amber-800">
+            <p className="text-[11px] text-[#7a6830]">
               DNT API er utilgjengelig — viser eksempel-turer
             </p>
           </div>
         )}
 
         {loading && (
-          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 animate-pulse">
+          <div className="flex-1 flex items-center justify-center text-xs text-[#8a8a80] animate-pulse">
             Henter turer fra DNT…
           </div>
         )}
 
         {error && (
-          <div className="flex-1 flex items-center justify-center text-xs text-red-400 px-4 text-center">
+          <div className="flex-1 flex items-center justify-center text-xs text-[#8a3a30] px-4 text-center">
             Kunne ikke laste turer fra DNT
           </div>
         )}
 
         {!loading && !error && (
-          <ul className="flex-1 divide-y divide-gray-50">
+          <ul className="flex-1 px-4 pb-4 space-y-3">
             {routes.map((tur) => {
               const isSelected = effectiveSelectedId === tur.id;
               return (
-                <li key={tur.id} id={`trip-${tur.id}`}>
+                <li
+                  key={tur.id}
+                  id={`trip-${tur.id}`}
+                  className={`rounded-2xl bg-white border transition-all ${
+                    isSelected
+                      ? "border-[#3d5a3e]/20 shadow-md"
+                      : "border-[#e8e5dd] shadow-sm hover:shadow-md"
+                  }`}
+                >
                   {/* Main trip card button */}
                   <button
-                    className={`w-full text-left px-4 py-4 transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 outline-none ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                    className="w-full text-left px-5 py-4 outline-none focus-visible:ring-2 focus-visible:ring-[#3d5a3e]/40 focus-visible:ring-offset-2 rounded-2xl"
                     onClick={() => handleTripClick(tur, isSelected)}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-semibold text-sm text-gray-900 leading-snug">
+                    <div className="flex items-start justify-between gap-3 mb-1.5">
+                      <p className="font-semibold text-[15px] text-[#2c2c2c] leading-snug">
                         {tur.name}
                       </p>
                       {tur.distanceKm !== null && (
-                        <span className="text-xs text-gray-600 shrink-0">
+                        <span className="text-xs text-[#8a8a80] shrink-0 mt-0.5">
                           {tur.distanceKm} km
                         </span>
                       )}
                     </div>
                     {tur.omrade && (
-                      <p className="text-xs text-gray-500 mb-1">{tur.omrade}</p>
+                      <p className="text-xs text-[#8a8a80] mb-1.5">
+                        {tur.omrade}
+                      </p>
                     )}
                     {tur.beskrivelse && (
-                      <p className="text-xs text-gray-600 mb-2 leading-relaxed line-clamp-2">
+                      <p className="text-[13px] text-[#5a5a52] mb-2.5 leading-relaxed line-clamp-2">
                         {tur.beskrivelse}
                       </p>
                     )}
                     {tur.beskrivelse && !tur.isFallback && (
-                      <div className="mb-1.5">
+                      <div className="mb-2">
                         <KildeBadge label="DNT" />
                       </div>
                     )}
                     <div className="flex items-center justify-between">
                       {tur.vanskelighet !== "Ukjent" && (
                         <span
-                          className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${VANSKELIGHET_COLOR[tur.vanskelighet]}`}
+                          className={`inline-block text-[11px] px-2.5 py-0.5 rounded-full font-medium ${VANSKELIGHET_COLOR[tur.vanskelighet]}`}
                         >
                           {tur.vanskelighet}
                         </span>
                       )}
-                      <span className="text-xs text-blue-700 ml-auto">
-                        {isSelected ? "Lukk ↑" : "Mer ↓"}
+                      <span className="text-[11px] text-[#3d5a3e] font-medium ml-auto">
+                        {isSelected ? "Lukk" : "Se mer"}
                       </span>
                     </div>
                   </button>
 
-                  {/* Elevation profile + invite buttons — siblings, never nested */}
+                  {/* Trip image */}
                   {isSelected && tur.imageUrl && (
-                    <div className="w-full h-40 overflow-hidden border-t border-gray-100">
+                    <div className="w-full h-40 overflow-hidden border-t border-[#f3f1ec]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={tur.imageUrl}
@@ -239,29 +249,32 @@ export default function TurforslaggerList({
                     </div>
                   )}
 
+                  {/* Action buttons — siblings, never nested */}
                   {isSelected && (
-                    <div className="px-4 py-2 border-t border-gray-100 bg-white flex items-center gap-2">
+                    <div className="px-5 py-3 border-t border-[#f3f1ec] flex items-center gap-2">
                       <button
+                        type="button"
                         onClick={() =>
                           setProfileOpenForId((prev) =>
                             prev === tur.id ? null : tur.id,
                           )
                         }
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
                           showProfile
-                            ? "bg-green-700 text-white border-green-700"
-                            : "bg-white text-green-700 border-green-600 hover:bg-green-700 hover:text-white"
+                            ? "bg-[#3d5a3e] text-white shadow-sm"
+                            : "bg-[#f3f1ec] text-[#3d5a3e] hover:bg-[#e8e5dd]"
                         }`}
                         aria-label={
                           showProfile ? "Skjul høydeprofil" : "Vis høydeprofil"
                         }
                       >
                         <ProfileIcon />
-                        {showProfile ? "Skjul høydeprofil" : "Høydeprofil"}
+                        {showProfile ? "Skjul" : "Høydeprofil"}
                       </button>
                       <button
+                        type="button"
                         onClick={() => setPlanningRoute(tur)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-blue-600 text-blue-700 bg-white hover:bg-blue-700 hover:text-white transition-colors"
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-medium bg-[#f3f1ec] text-[#3d5a3e] hover:bg-[#e8e5dd] transition-all"
                         aria-label="Inviter deltakere"
                       >
                         <InviteIcon />

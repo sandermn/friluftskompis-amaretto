@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import MapLoader from "./components/MapLoader";
 import TurforslaggerList from "./components/TurforslaggerList";
 import SearchBar from "./components/SearchBar";
@@ -54,6 +54,7 @@ function getCurrentSeason(): string {
 }
 
 export default function Home() {
+  const [started, setStarted] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SearchResult | null>(
     null,
   );
@@ -91,7 +92,13 @@ export default function Home() {
         lat: area.centerLat,
         lon: area.centerLon,
       });
+      setStarted(true);
     }
+  }
+
+  function handleSearchSelect(result: SearchResult) {
+    setSelectedLocation(result);
+    setStarted(true);
   }
 
   const displayedRoutes = useMemo(() => {
@@ -137,19 +144,46 @@ export default function Home() {
     // Season-based popularity sort
     result = [...result].sort((a, b) => {
       if (season === "sommer") {
-        // Summer: most challenging / popular routes first
         return (b.gradingRaw ?? 0) - (a.gradingRaw ?? 0);
       }
       if (season === "vinter") {
-        // Winter: easiest routes first (safer)
         return (a.gradingRaw ?? 0) - (b.gradingRaw ?? 0);
       }
-      // Spring / autumn: shorter routes first (shoulder season)
       return (a.distanceKm ?? 99) - (b.distanceKm ?? 99);
     });
 
     return result.slice(0, 20);
   }, [routes, selectedArea, selectedLocation, season, difficulty, duration]);
+
+  // ── Resizable split ──
+  const [listPercent, setListPercent] = useState(65);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const onDragStart = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const onDragMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current || !mainRef.current) return;
+    const rect = mainRef.current.getBoundingClientRect();
+    const isMd = window.matchMedia("(min-width: 768px)").matches;
+    if (isMd) {
+      const pct = ((e.clientX - rect.left) / rect.width) * 100;
+      setListPercent(Math.min(Math.max(pct, 25), 80));
+    } else {
+      // Mobile: map is at the top, dragging changes its height
+      const pct = ((e.clientY - rect.top) / rect.height) * 100;
+      const mapPct = Math.min(Math.max(pct, 15), 60);
+      setListPercent(100 - mapPct);
+    }
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    dragging.current = false;
+  }, []);
 
   function toggleDifficulty(d: Difficulty) {
     setDifficulty((prev) => (prev === d ? null : d));
@@ -163,148 +197,220 @@ export default function Home() {
     setSeason((prev) => (prev === s ? getCurrentSeason() : s));
   }
 
-  return (
-    <div className="flex flex-col h-full">
-      <header className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100 shadow-sm shrink-0">
-        <span className="text-2xl" aria-hidden="true">
-          ⛰️
-        </span>
-        <div>
-          <h1 className="text-base font-semibold text-gray-900 leading-tight">
-            Friluftskompis
+  // ── Start screen ──
+  if (!started) {
+    return (
+      <div className="relative flex flex-col h-full bg-[#2e4430] text-white overflow-auto">
+        {/* Atmospheric gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1c2e1e]/90 via-[#2e4430]/70 to-[#3d5a3e]/50" />
+
+        <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-14 pb-10 md:pt-24 md:justify-center">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 mb-16 md:mb-20">
+            <span className="text-lg opacity-80" aria-hidden="true">
+              ⛰️
+            </span>
+            <span className="text-sm font-medium tracking-wide text-white/70">
+              Friluftskompis
+            </span>
+            <Link
+              href="/status"
+              className="ml-auto text-[11px] text-white/30 hover:text-white/60 transition-colors"
+              aria-label="Systemstatus"
+            >
+              Status
+            </Link>
+          </div>
+
+          {/* Heading */}
+          <p className="text-[11px] text-white/40 uppercase tracking-[0.2em] mb-4">
+            Finn din neste tur
+          </p>
+          <h1 className="text-[2.5rem] md:text-5xl font-semibold leading-[1.08] tracking-tight mb-4">
+            Hva leter
+            <br />
+            du etter?
           </h1>
-          <p className="text-xs text-gray-500">DNT-hytter i Norge</p>
+          <p className="text-[15px] text-white/40 leading-relaxed mb-12">
+            Turer, hytter og fjelltopper i hele Norge
+          </p>
+
+          {/* Search */}
+          <div className="mb-4">
+            <SearchBar onSelect={handleSearchSelect} />
+          </div>
+
+          {/* Area filter */}
+          <div className="mb-10">
+            <AreaFilter
+              selectedId={selectedArea?.id ?? null}
+              onChange={handleAreaChange}
+            />
+          </div>
+
+          {/* CTA */}
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            className="w-full py-4 rounded-2xl bg-white/95 text-[#2e4430] text-sm font-semibold tracking-wide hover:bg-white transition-all focus:ring-2 focus:ring-white/40 outline-none shadow-lg shadow-black/10"
+          >
+            Utforsk alle turer
+          </button>
+
+          {/* Season pills */}
+          <div className="flex flex-wrap justify-center gap-2.5 mt-10">
+            {SEASONS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  toggleSeason(key);
+                  setStarted(true);
+                }}
+                className="text-[11px] px-4 py-2 rounded-full font-medium border border-white/15 bg-white/8 text-white/70 hover:bg-white/15 hover:text-white/90 transition-all whitespace-nowrap backdrop-blur-sm"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-        <Link
-          href="/status"
-          className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label="Systemstatus"
-          title="Systemstatus"
-        >
-          Status
-        </Link>
+      </div>
+    );
+  }
+
+  // ── Main app view ──
+  return (
+    <div className="flex flex-col h-full bg-[#faf9f6]">
+      {/* Header */}
+      <header className="shrink-0 bg-white/80 backdrop-blur-md border-b border-[#e8e5dd] px-5 py-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setStarted(false)}
+            className="flex items-center gap-2 shrink-0 group"
+            aria-label="Tilbake til startsiden"
+          >
+            <span className="text-base" aria-hidden="true">
+              ⛰️
+            </span>
+            <span className="text-sm font-semibold text-[#2e4430] hidden sm:inline group-hover:opacity-70 transition-opacity">
+              Friluftskompis
+            </span>
+          </button>
+          <div className="flex-1 max-w-sm">
+            <SearchBar onSelect={handleSearchSelect} />
+          </div>
+          <AreaFilter
+            selectedId={selectedArea?.id ?? null}
+            onChange={handleAreaChange}
+          />
+        </div>
       </header>
 
-      {/* Search + area */}
-      <div className="shrink-0 bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2">
-        <AreaFilter
-          selectedId={selectedArea?.id ?? null}
-          onChange={handleAreaChange}
-        />
-        <SearchBar onSelect={setSelectedLocation} />
-      </div>
-
-      {/* Trip filters */}
-      <div className="shrink-0 bg-gray-50 border-b border-gray-100 px-4 py-2 flex items-center gap-x-5 overflow-x-auto">
-        <FilterGroup label="Sesong">
+      {/* Filters */}
+      <div className="shrink-0 bg-white/60 backdrop-blur-sm border-b border-[#e8e5dd]/60 px-5 py-2.5 flex items-center gap-2 overflow-x-auto">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 w-full">
           {SEASONS.map(({ key, label }) => (
-            <FilterChip
+            <button
               key={key}
-              active={season === key}
+              type="button"
               onClick={() => toggleSeason(key)}
-              color="green"
+              className={`text-[11px] px-3.5 py-1.5 rounded-full font-medium transition-all whitespace-nowrap outline-none ${
+                season === key
+                  ? "bg-[#3d5a3e] text-white shadow-sm"
+                  : "bg-[#f3f1ec] text-[#5a5a52] hover:bg-[#e8e5dd]"
+              }`}
             >
               {label}
-            </FilterChip>
+            </button>
           ))}
-        </FilterGroup>
-
-        <FilterGroup label="Vanskelighet">
+          <span className="w-px h-4 bg-[#e8e5dd] shrink-0 mx-1" />
           {(["Enkel", "Middels", "Krevende"] as Difficulty[]).map((d) => (
-            <FilterChip
+            <button
               key={d}
-              active={difficulty === d}
+              type="button"
               onClick={() => toggleDifficulty(d)}
-              color="blue"
+              className={`text-[11px] px-3.5 py-1.5 rounded-full font-medium transition-all whitespace-nowrap outline-none ${
+                difficulty === d
+                  ? "bg-[#3d5a3e] text-white shadow-sm"
+                  : "bg-[#f3f1ec] text-[#5a5a52] hover:bg-[#e8e5dd]"
+              }`}
             >
               {d}
-            </FilterChip>
+            </button>
           ))}
-        </FilterGroup>
-
-        <FilterGroup label="Varighet">
+          <span className="w-px h-4 bg-[#e8e5dd] shrink-0 mx-1" />
           {DURATIONS.map(({ key, label }) => (
-            <FilterChip
+            <button
               key={key}
-              active={duration === key}
+              type="button"
               onClick={() => toggleDuration(key)}
-              color="purple"
+              className={`text-[11px] px-3.5 py-1.5 rounded-full font-medium transition-all whitespace-nowrap outline-none ${
+                duration === key
+                  ? "bg-[#3d5a3e] text-white shadow-sm"
+                  : "bg-[#f3f1ec] text-[#5a5a52] hover:bg-[#e8e5dd]"
+              }`}
             >
               {label}
-            </FilterChip>
+            </button>
           ))}
-        </FilterGroup>
+        </div>
       </div>
 
-      <main className="flex-1 flex flex-col overflow-hidden md:flex-row">
-        {/* Map: top on mobile, right side on desktop */}
-        <div className="order-first h-52 shrink-0 relative md:order-last md:h-auto md:flex-1">
-          <MapLoader
+      {/* Content: resizable split */}
+      <main
+        ref={mainRef}
+        className="flex-1 flex flex-col overflow-hidden md:flex-row select-none"
+      >
+        {/* Map (top on mobile, right on desktop) */}
+        <div
+          className="order-first relative md:order-last md:p-3 min-h-0 min-w-0"
+          style={{ flex: `0 0 ${100 - listPercent}%` }}
+        >
+          <div className="h-full w-full md:rounded-2xl md:overflow-hidden md:shadow-sm md:border md:border-[#e8e5dd]">
+            <MapLoader
+              routes={displayedRoutes}
+              selectedLocation={selectedLocation}
+              selectedAreaId={selectedArea?.id ?? null}
+              onSelectLocation={setSelectedLocation}
+            />
+          </div>
+        </div>
+
+        {/* Drag handle */}
+        <div
+          className="order-2 shrink-0 flex items-center justify-center md:order-2 md:w-3 md:cursor-col-resize cursor-row-resize z-10 group"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Dra for å endre størrelse"
+          style={{ touchAction: "none" }}
+        >
+          {/* Mobile: horizontal bar */}
+          <div className="md:hidden w-10 h-1 rounded-full bg-[#d4d1c9] group-hover:bg-[#b0ada5] transition-colors my-1.5" />
+          {/* Desktop: vertical bar */}
+          <div className="hidden md:block h-10 w-1 rounded-full bg-[#d4d1c9] group-hover:bg-[#b0ada5] transition-colors" />
+        </div>
+
+        {/* Trip list */}
+        <div
+          className="order-3 min-h-0 min-w-0 overflow-hidden md:order-1"
+          style={{ flex: `0 0 ${listPercent}%` }}
+        >
+          <TurforslaggerList
             routes={displayedRoutes}
+            loading={routesLoading}
+            error={routesError}
+            fallback={routesFallback}
+            season={season}
             selectedLocation={selectedLocation}
-            selectedAreaId={selectedArea?.id ?? null}
             onSelectLocation={setSelectedLocation}
           />
         </div>
-        <TurforslaggerList
-          routes={displayedRoutes}
-          loading={routesLoading}
-          error={routesError}
-          fallback={routesFallback}
-          season={season}
-          selectedLocation={selectedLocation}
-          onSelectLocation={setSelectedLocation}
-        />
       </main>
     </div>
-  );
-}
-
-function FilterGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs text-gray-600 font-medium shrink-0">
-        {label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  color,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  color: "green" | "blue" | "purple";
-  children: React.ReactNode;
-}) {
-  const activeClass =
-    color === "green"
-      ? "bg-green-700 text-white border-green-800"
-      : color === "blue"
-        ? "bg-blue-700 text-white border-blue-800"
-        : "bg-purple-700 text-white border-purple-800";
-
-  return (
-    <button
-      onClick={onClick}
-      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors whitespace-nowrap focus:ring-2 focus:ring-offset-1 focus:ring-green-600 outline-none ${
-        active
-          ? activeClass
-          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

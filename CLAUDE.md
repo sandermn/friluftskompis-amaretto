@@ -57,6 +57,7 @@ When a task is finished, add it to this list before committing.
 - TE2 — Streng review av AI-generert kode
 - TE4 — Code-review skill
 - TE5 — To eksterne API-er integrert
+- G5 — Kommentartråd per tur
 
 ## Rules
 

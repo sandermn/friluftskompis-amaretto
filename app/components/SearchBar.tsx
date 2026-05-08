@@ -89,7 +89,7 @@ export default function SearchBar({ onSelect }: Props) {
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
-      <div className="flex items-center gap-2 bg-white rounded-xl shadow-md border border-gray-200 px-3 py-2">
+      <div className="flex items-center gap-2.5 bg-white rounded-2xl shadow-sm border border-[#e8e5dd] px-4 py-2.5">
         {loading ? (
           <svg
             className="animate-spin w-4 h-4 text-green-600 shrink-0"
@@ -146,7 +146,7 @@ export default function SearchBar({ onSelect }: Props) {
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Søk på hytte, område eller fjelltopp…"
           aria-label="Søk etter hytte, område eller fjelltopp"
-          className="flex-1 text-sm text-gray-800 placeholder:text-gray-400 outline-none bg-transparent"
+          className="flex-1 text-sm text-[#2c2c2c] placeholder:text-[#b0b0a8] outline-none bg-transparent"
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={open}
@@ -183,7 +183,7 @@ export default function SearchBar({ onSelect }: Props) {
         <ul
           id="search-listbox"
           role="listbox"
-          className="absolute top-full mt-1.5 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-[2000]"
+          className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-lg border border-[#e8e5dd] overflow-hidden z-[2000]"
         >
           {results.map((r, i) => {
             const cfg = CATEGORY_CONFIG[r.category];
@@ -194,24 +194,24 @@ export default function SearchBar({ onSelect }: Props) {
                 aria-selected={i === activeIdx}
                 onMouseDown={() => handleSelect(r)}
                 onMouseEnter={() => setActiveIdx(i)}
-                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-green-500 ${
-                  i === activeIdx ? "bg-green-50" : "hover:bg-gray-50"
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                  i === activeIdx ? "bg-[#f3f1ec]" : "hover:bg-[#faf9f6]"
                 }`}
               >
                 <span className="text-base w-5 text-center shrink-0">
                   {cfg.icon}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-[#2c2c2c] truncate">
                     {r.name}
                   </p>
                   {r.subtitle && (
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-[#8a8a80] truncate">
                       {r.subtitle}
                     </p>
                   )}
                 </div>
-                <span className="ml-auto text-[10px] text-gray-400 uppercase tracking-wide shrink-0">
+                <span className="ml-auto text-[10px] text-[#b0b0a8] uppercase tracking-wide shrink-0">
                   {cfg.label}
                 </span>
               </li>

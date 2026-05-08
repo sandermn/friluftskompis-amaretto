@@ -48,3 +48,13 @@ export const expenses = pgTable("expenses", {
   sharedBy: json("shared_by").$type<string[]>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  tripId: varchar("trip_id", { length: 12 })
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  authorName: varchar("author_name", { length: 40 }).notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
