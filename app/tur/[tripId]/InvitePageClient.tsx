@@ -217,12 +217,18 @@ export default function InvitePageClient({
                   : ""}
               </p>
             </div>
-            <Link
-              href="/"
-              className="text-xs text-green-700 hover:underline shrink-0 mt-1"
-            >
-              Friluftskompis
-            </Link>
+            <div className="flex items-center gap-3 shrink-0 mt-1">
+              <Link
+                href={`/tur/${trip.id}/print`}
+                target="_blank"
+                className="text-xs text-blue-600 hover:underline"
+              >
+                📄 Last ned PDF
+              </Link>
+              <Link href="/" className="text-xs text-green-700 hover:underline">
+                Friluftskompis
+              </Link>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-3 text-sm text-gray-700">
             <span className="font-medium">📅 {formatDate(trip.date)}</span>
