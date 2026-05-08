@@ -170,7 +170,9 @@ export async function GET() {
         return {
           id: node.id,
           name: node.name,
-          beskrivelse: node.descriptionAb?.slice(0, 200) ?? null,
+          beskrivelse: node.descriptionAb
+            ? node.descriptionAb.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200)
+            : null,
           vanskelighet: gradingLabel(node.gradingAb),
           gradingRaw: GRADING_ORDER[node.gradingAb ?? ""] ?? 0,
           distanceKm: node.distance ? Math.round(node.distance / 1000) : null,
