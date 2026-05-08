@@ -276,24 +276,7 @@ export default function TurforslaggerList({
                         lat={tur.lat}
                         lon={tur.lon}
                       />
-                      <PackingList
-                        key={`packing-${tur.id}`}
-                        tripName={tur.name}
-                        distanceKm={tur.distanceKm}
-                        difficulty={tur.vanskelighet}
-                        lat={tur.lat}
-                        lon={tur.lon}
-                      />
                     </>
-                  )}
-
-                  {isSelected && (
-                    <AiTip
-                      routeName={tur.name}
-                      vanskelighet={tur.vanskelighet}
-                      distanceKm={tur.distanceKm}
-                      season={season}
-                    />
                   )}
                 </li>
               );
@@ -302,65 +285,6 @@ export default function TurforslaggerList({
         )}
       </aside>
     </>
-  );
-}
-
-function AiTip({
-  routeName,
-  vanskelighet,
-  distanceKm,
-  season,
-}: {
-  routeName: string;
-  vanskelighet: string;
-  distanceKm: number | null;
-  season: string;
-}) {
-  const [tip, setTip] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams({
-      route: routeName,
-      vanskelighet,
-      distanceKm: String(distanceKm ?? ""),
-      season,
-    });
-    fetch(`/api/ai-anbefaling?${params}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled && data.tip) setTip(data.tip);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [routeName, vanskelighet, distanceKm, season]);
-
-  if (loading) {
-    return (
-      <div className="px-4 py-2 text-xs text-gray-400 animate-pulse">
-        Henter AI-tips…
-      </div>
-    );
-  }
-
-  if (!tip) return null;
-
-  return (
-    <div className="mx-3 mb-3 rounded-lg bg-violet-50 border border-violet-100 px-3 py-2.5">
-      <div className="flex items-center gap-1.5 mb-1">
-        <AiBadge />
-        <span className="text-[10px] text-violet-600 font-medium">
-          Turguide-tips
-        </span>
-      </div>
-      <p className="text-xs text-violet-900 leading-relaxed">{tip}</p>
-    </div>
   );
 }
 
