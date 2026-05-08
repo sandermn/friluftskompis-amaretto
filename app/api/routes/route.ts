@@ -21,18 +21,33 @@ interface RouteEdge {
     counties: { name: string }[];
     geojson: {
       type: string;
-      coordinates: [number, number, number?][];
+      // LineString: [lon, lat, alt?][]
+      // MultiLineString: [lon, lat, alt?][][]
+      coordinates: unknown;
     } | null;
   };
 }
 
-/** Extract centroid [lat, lon] from a LineString geojson */
+/** Extract centroid [lat, lon] from LineString or MultiLineString geojson */
 function centroid(geojson: RouteEdge["node"]["geojson"]): [number, number] | null {
-  if (!geojson || geojson.type !== "LineString" || !geojson.coordinates?.length) {
-    return null;
+  if (!geojson) return null;
+
+  if (geojson.type === "LineString") {
+    const coords = geojson.coordinates as [number, number, number?][];
+    if (!coords?.length) return null;
+    const mid = coords[Math.floor(coords.length / 2)];
+    return [mid[1], mid[0]];
   }
-  const mid = geojson.coordinates[Math.floor(geojson.coordinates.length / 2)];
-  return [mid[1], mid[0]]; // [lat, lon]
+
+  if (geojson.type === "MultiLineString") {
+    const lines = geojson.coordinates as [number, number, number?][][];
+    const first = lines?.[0];
+    if (!first?.length) return null;
+    const mid = first[Math.floor(first.length / 2)];
+    return [mid[1], mid[0]];
+  }
+
+  return null;
 }
 
 /** Map DNT grading (1–5 scale) to a label */

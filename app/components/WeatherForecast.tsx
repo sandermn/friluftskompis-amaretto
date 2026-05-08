@@ -86,28 +86,31 @@ function formatDate(dateStr: string): string {
   });
 }
 
+type State =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "done"; days: DayForecast[] };
+
 export default function WeatherForecast({ lat, lon }: { lat: number; lon: number }) {
-  const [days, setDays] = useState<DayForecast[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [state, setState] = useState<State>({ status: "loading" });
 
   useEffect(() => {
-    setLoading(true);
-    setError(false);
+    let cancelled = false;
+    setState({ status: "loading" });
     fetch(`/api/weather?lat=${lat}&lon=${lon}`)
       .then((r) => r.json())
       .then((data) => {
+        if (cancelled) return;
         const timeseries: TimeStep[] = data?.properties?.timeseries ?? [];
-        setDays(groupByDay(timeseries));
-        setLoading(false);
+        setState({ status: "done", days: groupByDay(timeseries) });
       })
       .catch(() => {
-        setError(true);
-        setLoading(false);
+        if (!cancelled) setState({ status: "error" });
       });
+    return () => { cancelled = true; };
   }, [lat, lon]);
 
-  if (loading) {
+  if (state.status === "loading") {
     return (
       <div className="px-3 py-3 text-xs text-gray-400 animate-pulse">
         Henter værvarsel…
@@ -115,7 +118,7 @@ export default function WeatherForecast({ lat, lon }: { lat: number; lon: number
     );
   }
 
-  if (error || days.length === 0) {
+  if (state.status === "error" || state.days.length === 0) {
     return (
       <div className="px-3 py-2 text-xs text-red-400">
         Kunne ikke laste værvarsel
@@ -129,7 +132,7 @@ export default function WeatherForecast({ lat, lon }: { lat: number; lon: number
         Værvarsel (Yr)
       </p>
       <div className="divide-y divide-blue-100">
-        {days.map((day) => (
+        {state.days.map((day) => (
           <div key={day.date} className="flex items-center gap-2 px-3 py-1.5 text-xs">
             <span className="text-base w-6 text-center">{weatherEmoji(day.symbol)}</span>
             <span className="w-24 text-gray-500 shrink-0">{formatDate(day.date)}</span>

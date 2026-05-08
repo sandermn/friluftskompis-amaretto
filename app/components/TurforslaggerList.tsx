@@ -116,12 +116,14 @@ export default function TurforslaggerList() {
                     </p>
                   )}
                   <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${VANSKELIGHET_COLOR[tur.vanskelighet] ?? VANSKELIGHET_COLOR.Ukjent}`}
-                    >
-                      {tur.vanskelighet}
-                    </span>
-                    <span className="text-xs text-blue-500">
+                    {tur.vanskelighet !== "Ukjent" && (
+                      <span
+                        className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${VANSKELIGHET_COLOR[tur.vanskelighet]}`}
+                      >
+                        {tur.vanskelighet}
+                      </span>
+                    )}
+                    <span className="text-xs text-blue-500 ml-auto">
                       {isSelected ? "Skjul vær ↑" : "Vis vær ↓"}
                     </span>
                   </div>
