@@ -272,24 +272,26 @@ export default function TurforslaggerList({
 
                 {/* Elevation profile toggle — sibling button, never nested */}
                 {isSelected && (
-                  <button
-                    onClick={() =>
-                      setProfileOpenForId((prev) =>
-                        prev === tur.id ? null : tur.id,
-                      )
-                    }
-                    className={`w-full flex items-center gap-1.5 px-4 py-1.5 text-xs border-t border-gray-100 transition-colors ${
-                      showProfile
-                        ? "bg-green-50 text-green-700"
-                        : "text-gray-400 hover:text-green-700 hover:bg-green-50"
-                    }`}
-                    aria-label={
-                      showProfile ? "Skjul høydeprofil" : "Vis høydeprofil"
-                    }
-                  >
-                    <ProfileIcon />
-                    {showProfile ? "Skjul høydeprofil" : "Høydeprofil"}
-                  </button>
+                  <div className="px-4 py-2 border-t border-gray-100 bg-white">
+                    <button
+                      onClick={() =>
+                        setProfileOpenForId((prev) =>
+                          prev === tur.id ? null : tur.id,
+                        )
+                      }
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        showProfile
+                          ? "bg-green-700 text-white border-green-700"
+                          : "bg-white text-green-700 border-green-600 hover:bg-green-700 hover:text-white"
+                      }`}
+                      aria-label={
+                        showProfile ? "Skjul høydeprofil" : "Vis høydeprofil"
+                      }
+                    >
+                      <ProfileIcon />
+                      {showProfile ? "Skjul høydeprofil" : "Høydeprofil"}
+                    </button>
+                  </div>
                 )}
 
                 {isSelected && showProfile && (
