@@ -5,6 +5,7 @@ import MapLoader from "./components/MapLoader";
 import TurforslaggerList from "./components/TurforslaggerList";
 import SearchBar from "./components/SearchBar";
 import AreaFilter from "./components/AreaFilter";
+import Link from "next/link";
 import type { SearchResult } from "./api/search/route";
 import type { DntArea } from "./api/areas/route";
 
@@ -19,6 +20,7 @@ export interface Route {
   lat: number;
   lon: number;
   geojson: { type: string; coordinates: unknown } | null;
+  isFallback?: boolean;
 }
 
 type Difficulty = "Enkel" | "Middels" | "Krevende";
@@ -58,6 +60,7 @@ export default function Home() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [routesLoading, setRoutesLoading] = useState(true);
   const [routesError, setRoutesError] = useState(false);
+  const [routesFallback, setRoutesFallback] = useState(false);
 
   const [season, setSeason] = useState<string>(getCurrentSeason());
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -68,6 +71,7 @@ export default function Home() {
       .then((r) => r.json())
       .then((data) => {
         setRoutes(data.routes ?? []);
+        setRoutesFallback(data.fallback === true);
         setRoutesLoading(false);
       })
       .catch(() => {
@@ -170,6 +174,14 @@ export default function Home() {
           </h1>
           <p className="text-xs text-gray-500">DNT-hytter i Norge</p>
         </div>
+        <Link
+          href="/status"
+          className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Systemstatus"
+          title="Systemstatus"
+        >
+          Status
+        </Link>
       </header>
 
       {/* Search + area */}
@@ -237,6 +249,7 @@ export default function Home() {
           routes={displayedRoutes}
           loading={routesLoading}
           error={routesError}
+          fallback={routesFallback}
           season={season}
           selectedLocation={selectedLocation}
           onSelectLocation={setSelectedLocation}
