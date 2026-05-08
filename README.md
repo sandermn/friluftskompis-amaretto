@@ -16,9 +16,47 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The AI packing list endpoint requires an Anthropic API key:
+
+```bash
+ANTHROPIC_API_KEY=your_api_key_here
+```
+
+Without this key, `POST /api/packing-list` will fail.
+
+## AI packing list (F6)
+
+This PR adds an AI-generated packing list shown in the expanded trip panel under `WeatherForecast`.
+
+- UI: `app/components/PackingList.tsx`
+  - Lets users set participants and trip days
+  - Generates checklist items grouped by category
+  - Supports checking/unchecking items locally
+- API: `app/api/packing-list/route.ts`
+  - Calls Claude Haiku (`claude-haiku-4-5`)
+  - Uses trip metadata and weather summary to tailor the packing list
+  - Returns structured JSON with `categories` and `tips`
+
+Example request body:
+
+```json
+{
+  "tripName": "Rondane helgetur",
+  "distanceKm": 14,
+  "difficulty": "Middels",
+  "participants": 3,
+  "days": 2,
+  "weather": {
+    "tempMin": 2,
+    "tempMax": 10,
+    "precipTotal": 6.4,
+    "windMax": 12,
+    "hasSnow": true
+  }
+}
+```
 
 ## CI/CD
 
