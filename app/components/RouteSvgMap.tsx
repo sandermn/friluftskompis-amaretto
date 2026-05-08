@@ -16,14 +16,13 @@ function mercatorY(lat: number): number {
 
 function extractCoords(geojson: Geojson): [number, number][] {
   if (geojson.type === "LineString") {
-    return (geojson.coordinates as [number, number][]).map(([lon, lat]) => [
-      lon,
-      lat,
-    ]);
+    return (geojson.coordinates as number[][]).map(
+      ([lon, lat]) => [lon, lat] as [number, number],
+    );
   }
   if (geojson.type === "MultiLineString") {
-    return (geojson.coordinates as [number, number][][]).flatMap((line) =>
-      line.map(([lon, lat]) => [lon, lat]),
+    return (geojson.coordinates as number[][][]).flatMap((line) =>
+      line.map(([lon, lat]) => [lon, lat] as [number, number]),
     );
   }
   return [];
@@ -62,14 +61,13 @@ export default function RouteSvgMap({
   const segments: [number, number][][] = [];
   if (geojson.type === "LineString") {
     segments.push(
-      (geojson.coordinates as [number, number][]).map(([lon, lat]) => [
-        lon,
-        lat,
-      ]),
+      (geojson.coordinates as number[][]).map(
+        ([lon, lat]) => [lon, lat] as [number, number],
+      ),
     );
   } else if (geojson.type === "MultiLineString") {
-    for (const line of geojson.coordinates as [number, number][][]) {
-      segments.push(line.map(([lon, lat]) => [lon, lat]));
+    for (const line of geojson.coordinates as number[][][]) {
+      segments.push(line.map(([lon, lat]) => [lon, lat] as [number, number]));
     }
   }
 

@@ -44,7 +44,7 @@ interface TripData {
   date: string;
   startTime: string | null;
   description: string;
-  routeGeojson: unknown;
+  routeGeojson: { type: string; coordinates: unknown } | null;
   packingList: PackingListResponse | null;
 }
 
