@@ -29,7 +29,6 @@ State for the map lives in `MapLoader`. `DntMap` is a pure display component tha
 ## Rules
 
 - `dynamic(() => import(...), { ssr: false })` is only allowed inside Client Components — Next.js 16 will error if used in a Server Component.
-- Never nest interactive elements: no `<button>` inside `<button>`, no `<span role="button">` inside `<button>`. Use sibling elements or restructure the layout.
 - Use `useEffect` with a state dependency to trigger side effects like `focus()` — never `setTimeout(() => ..., 0)`.
 - Derive expensive values with `useMemo` rather than recomputing them in JSX or in multiple places in the same render.
 - Every new interactive component (dropdown, combobox, menu) must support keyboard navigation: ↑/↓ to move, Enter to select, Escape to close.
