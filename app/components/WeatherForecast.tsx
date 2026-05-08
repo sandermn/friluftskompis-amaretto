@@ -24,11 +24,15 @@ interface DayForecast {
 }
 
 function groupByDay(timeseries: TimeStep[]): DayForecast[] {
-  const days: Record<string, { temps: number[]; precip: number; winds: number[]; symbol: string }> = {};
+  const days: Record<
+    string,
+    { temps: number[]; precip: number; winds: number[]; symbol: string }
+  > = {};
 
   for (const step of timeseries) {
     const date = step.time.slice(0, 10);
-    if (!days[date]) days[date] = { temps: [], precip: 0, winds: [], symbol: "" };
+    if (!days[date])
+      days[date] = { temps: [], precip: 0, winds: [], symbol: "" };
 
     const temp = step.data.instant.details.air_temperature;
     const wind = step.data.instant.details.wind_speed;
@@ -91,7 +95,13 @@ type State =
   | { status: "error" }
   | { status: "done"; days: DayForecast[] };
 
-export default function WeatherForecast({ lat, lon }: { lat: number; lon: number }) {
+export default function WeatherForecast({
+  lat,
+  lon,
+}: {
+  lat: number;
+  lon: number;
+}) {
   const [state, setState] = useState<State>({ status: "loading" });
 
   useEffect(() => {
@@ -106,7 +116,9 @@ export default function WeatherForecast({ lat, lon }: { lat: number; lon: number
       .catch(() => {
         if (!cancelled) setState({ status: "error" });
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [lat, lon]);
 
   if (state.status === "loading") {
@@ -130,16 +142,27 @@ export default function WeatherForecast({ lat, lon }: { lat: number; lon: number
       <p className="text-xs font-medium text-blue-700 px-3 pt-2 pb-1">
         Værvarsel (Yr)
       </p>
-      <div className="divide-y divide-blue-100">
+      <div className="divide-y divide-blue-100 overflow-x-auto">
         {state.days.map((day) => (
-          <div key={day.date} className="flex items-center gap-2 px-3 py-1.5 text-xs">
-            <span className="text-base w-6 text-center">{weatherEmoji(day.symbol)}</span>
-            <span className="w-24 text-gray-500 shrink-0">{formatDate(day.date)}</span>
+          <div
+            key={day.date}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs"
+          >
+            <span className="text-base w-6 text-center">
+              {weatherEmoji(day.symbol)}
+            </span>
+            <span className="w-24 text-gray-500 shrink-0">
+              {formatDate(day.date)}
+            </span>
             <span className="font-medium text-gray-800 w-20 shrink-0">
               {Math.round(day.tempMin)}–{Math.round(day.tempMax)} °C
             </span>
-            <span className="text-blue-600 w-14 shrink-0">💧 {day.precipitation} mm</span>
-            <span className="text-gray-500">💨 {Math.round(day.windMax)} m/s</span>
+            <span className="text-blue-600 w-14 shrink-0">
+              💧 {day.precipitation} mm
+            </span>
+            <span className="text-gray-500">
+              💨 {Math.round(day.windMax)} m/s
+            </span>
           </div>
         ))}
       </div>

@@ -130,7 +130,7 @@ export default function TurforslaggerList({
           onClose={() => setSharedTripId(null)}
         />
       )}
-      <aside className="w-80 shrink-0 h-full overflow-y-auto bg-white border-r border-gray-100 flex flex-col">
+      <aside className="w-full flex-1 min-h-0 overflow-y-auto bg-white border-t border-gray-100 md:border-t-0 md:border-r md:w-80 md:shrink-0 md:flex-none flex flex-col">
         <div className="px-4 py-3 border-b border-gray-100">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
             {SEASON_LABEL[season]} · {routes.length} turer
