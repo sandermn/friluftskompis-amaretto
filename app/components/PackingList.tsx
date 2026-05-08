@@ -17,6 +17,7 @@ interface Props {
   difficulty: string;
   lat: number;
   lon: number;
+  onListChange?: (list: PackingListResponse | null) => void;
 }
 
 function ParticipantStepper({
@@ -29,6 +30,7 @@ function ParticipantStepper({
   return (
     <div className="flex items-center gap-1">
       <button
+        type="button"
         onClick={() => onChange(Math.max(1, value - 1))}
         aria-label="Færre deltakere"
         className="w-6 h-6 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center text-sm leading-none hover:bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
@@ -39,6 +41,7 @@ function ParticipantStepper({
         {value}
       </span>
       <button
+        type="button"
         onClick={() => onChange(Math.min(20, value + 1))}
         aria-label="Flere deltakere"
         className="w-6 h-6 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center text-sm leading-none hover:bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
@@ -59,6 +62,7 @@ function DayStepper({
   return (
     <div className="flex items-center gap-1">
       <button
+        type="button"
         onClick={() => onChange(Math.max(1, value - 1))}
         aria-label="Færre dager"
         className="w-6 h-6 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center text-sm leading-none hover:bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
@@ -69,6 +73,7 @@ function DayStepper({
         {value}
       </span>
       <button
+        type="button"
         onClick={() => onChange(Math.min(14, value + 1))}
         aria-label="Flere dager"
         className="w-6 h-6 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center text-sm leading-none hover:bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
@@ -85,6 +90,7 @@ export default function PackingList({
   difficulty,
   lat,
   lon,
+  onListChange,
 }: Props) {
   const [participants, setParticipants] = useState(2);
   const [days, setDays] = useState(1);
@@ -183,6 +189,7 @@ export default function PackingList({
         setList(data);
         setChecked(new Set());
         setStatus("idle");
+        onListChange?.(data);
       })
       .catch((e) => {
         if (e.name !== "AbortError") setStatus("error");
@@ -229,6 +236,7 @@ export default function PackingList({
             />
           </div>
           <button
+            type="button"
             onClick={generate}
             disabled={status === "loading"}
             className="text-[10px] px-2 py-1 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50 focus:ring-2 focus:ring-green-500 focus:ring-offset-1 outline-none transition-colors"
