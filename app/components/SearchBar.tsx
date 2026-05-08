@@ -36,15 +36,9 @@ export default function SearchBar({ onSelect }: Props) {
     const controller = new AbortController();
 
     if (debouncedQuery.length < 3) {
-      // schedule as microtask to avoid synchronous setState in effect body
-      Promise.resolve().then(() => {
-        setResults([]);
-        setOpen(false);
-      });
       return () => controller.abort();
     }
 
-    setLoading(true);
     fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`, {
       signal: controller.signal,
     })
@@ -131,7 +125,20 @@ export default function SearchBar({ onSelect }: Props) {
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const nextQuery = e.target.value;
+            setQuery(nextQuery);
+
+            if (nextQuery.length < 3) {
+              setResults([]);
+              setOpen(false);
+              setActiveIdx(-1);
+              setLoading(false);
+              return;
+            }
+
+            setLoading(true);
+          }}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Søk på hytte, område eller fjelltopp…"
@@ -146,6 +153,8 @@ export default function SearchBar({ onSelect }: Props) {
               setQuery("");
               setResults([]);
               setOpen(false);
+              setActiveIdx(-1);
+              setLoading(false);
               inputRef.current?.focus();
             }}
             className="text-gray-400 hover:text-gray-600"
