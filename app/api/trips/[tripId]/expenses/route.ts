@@ -21,7 +21,7 @@ export async function POST(
 ) {
   const { tripId } = await params;
   const body = await req.json();
-  const { paidBy, description, amountOre } = body;
+  const { paidBy, description, amountOre, sharedBy } = body;
 
   if (
     !paidBy?.trim() ||
@@ -42,6 +42,11 @@ export async function POST(
     );
   }
 
+  const sharedByClean: string[] | null =
+    Array.isArray(sharedBy) && sharedBy.length > 0
+      ? sharedBy.map((n: unknown) => String(n).trim().slice(0, 40))
+      : null;
+
   const [row] = await db
     .insert(expenses)
     .values({
@@ -49,6 +54,7 @@ export async function POST(
       paidBy: String(paidBy).trim().slice(0, 40),
       description: String(description).trim().slice(0, 100),
       amountOre: Math.round(amountOre),
+      sharedBy: sharedByClean,
     })
     .returning();
 

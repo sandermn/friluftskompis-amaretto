@@ -29,6 +29,7 @@ interface Expense {
   paidBy: string;
   description: string;
   amountOre: number;
+  sharedBy: string[] | null;
 }
 
 interface TripData {

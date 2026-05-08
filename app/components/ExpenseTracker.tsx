@@ -7,6 +7,7 @@ interface Expense {
   paidBy: string;
   description: string;
   amountOre: number;
+  sharedBy: string[] | null;
 }
 
 interface Settlement {
@@ -23,19 +24,25 @@ interface Props {
 
 function calcSettlements(
   expenseList: Expense[],
-  names: string[],
+  allNames: string[],
 ): Settlement[] {
-  if (names.length === 0) return [];
-
-  const totalOre = expenseList.reduce((s, e) => s + e.amountOre, 0);
-  const shareOre = totalOre / names.length;
+  if (allNames.length === 0) return [];
 
   const balance: Record<string, number> = {};
-  for (const name of names) balance[name] = 0;
-  for (const e of expenseList) {
-    if (balance[e.paidBy] !== undefined) balance[e.paidBy] += e.amountOre;
+  for (const name of allNames) balance[name] = 0;
+
+  for (const exp of expenseList) {
+    const participants = exp.sharedBy ?? allNames;
+    if (participants.length === 0) continue;
+    const share = exp.amountOre / participants.length;
+    for (const name of participants) {
+      if (balance[name] === undefined) balance[name] = 0;
+      balance[name] -= share;
+    }
+    if (balance[exp.paidBy] !== undefined) {
+      balance[exp.paidBy] += exp.amountOre;
+    }
   }
-  for (const name of names) balance[name] -= shareOre;
 
   const debtors = Object.entries(balance)
     .filter(([, b]) => b < -0.5)
@@ -83,6 +90,9 @@ export default function ExpenseTracker({
   const [paidBy, setPaidBy] = useState(participantNames[0] ?? "");
   const [description, setDescription] = useState("");
   const [amountKr, setAmountKr] = useState("");
+  const [sharedBy, setSharedBy] = useState<Set<string>>(
+    new Set(participantNames),
+  );
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -90,9 +100,31 @@ export default function ExpenseTracker({
   const settlements = calcSettlements(expenseList, participantNames);
   const totalOre = expenseList.reduce((s, e) => s + e.amountOre, 0);
 
+  function toggleShared(name: string) {
+    setSharedBy((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  function openForm() {
+    setSharedBy(new Set(participantNames));
+    setPaidBy(participantNames[0] ?? "");
+    setDescription("");
+    setAmountKr("");
+    setError(null);
+    setShowForm(true);
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (sharedBy.size === 0) {
+      setError("Velg minst én person som deler utgiften");
+      return;
+    }
     const amountOre = Math.round(parseFloat(amountKr.replace(",", ".")) * 100);
     if (!paidBy || !description.trim() || isNaN(amountOre) || amountOre <= 0) {
       setError("Fyll ut alle felt");
@@ -100,10 +132,18 @@ export default function ExpenseTracker({
     }
     setAdding(true);
     try {
+      const isAll =
+        sharedBy.size === participantNames.length &&
+        participantNames.every((n) => sharedBy.has(n));
       const res = await fetch(`/api/trips/${tripId}/expenses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paidBy, description, amountOre }),
+        body: JSON.stringify({
+          paidBy,
+          description,
+          amountOre,
+          sharedBy: isAll ? null : Array.from(sharedBy),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -111,8 +151,6 @@ export default function ExpenseTracker({
         return;
       }
       setExpenseList((prev) => [...prev, data]);
-      setDescription("");
-      setAmountKr("");
       setShowForm(false);
     } catch {
       setError("Kunne ikke lagre utlegg");
@@ -136,24 +174,32 @@ export default function ExpenseTracker({
 
       {expenseList.length > 0 && (
         <ul className="divide-y divide-amber-100 border-t border-amber-100">
-          {expenseList.map((exp) => (
-            <li
-              key={exp.id}
-              className="px-3 py-1.5 flex items-center justify-between"
-            >
-              <div>
-                <span className="text-xs text-gray-800 font-medium">
-                  {exp.description}
+          {expenseList.map((exp) => {
+            const shared = exp.sharedBy ?? participantNames;
+            return (
+              <li
+                key={exp.id}
+                className="px-3 py-1.5 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <span className="text-xs text-gray-800 font-medium">
+                    {exp.description}
+                  </span>
+                  <span className="text-[10px] text-gray-500 ml-1.5">
+                    betalt av {exp.paidBy}
+                  </span>
+                  {exp.sharedBy && (
+                    <p className="text-[10px] text-amber-600 mt-0.5">
+                      Deles av: {shared.join(", ")}
+                    </p>
+                  )}
+                </div>
+                <span className="text-xs font-semibold text-amber-800 shrink-0">
+                  {kr(exp.amountOre)}
                 </span>
-                <span className="text-[10px] text-gray-500 ml-1.5">
-                  betalt av {exp.paidBy}
-                </span>
-              </div>
-              <span className="text-xs font-semibold text-amber-800">
-                {kr(exp.amountOre)}
-              </span>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -217,6 +263,28 @@ export default function ExpenseTracker({
             required
             className="w-full border border-amber-200 rounded px-2 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
+          <fieldset>
+            <legend className="text-[10px] text-amber-700 font-medium mb-1">
+              Deles av
+            </legend>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {participantNames.map((n) => (
+                <label
+                  key={n}
+                  className="flex items-center gap-1 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={sharedBy.has(n)}
+                    onChange={() => toggleShared(n)}
+                    className="accent-amber-600"
+                    aria-label={n}
+                  />
+                  <span className="text-xs text-gray-700">{n}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           {error && <p className="text-[10px] text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button
@@ -239,7 +307,7 @@ export default function ExpenseTracker({
         <div className="px-3 pb-2">
           <button
             type="button"
-            onClick={() => setShowForm(true)}
+            onClick={openForm}
             className="text-[10px] px-2 py-1 rounded-full bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors"
           >
             + Legg til utlegg
