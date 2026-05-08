@@ -12,6 +12,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
+import ElevationProfile from "./ElevationProfile";
 
 type ServiceLevel =
   | "STAFFED"
@@ -205,28 +206,29 @@ export default function DntMap({
                   }),
               }}
             >
-              <Popup>
-                <div className="min-w-[180px] font-sans">
-                  <p className="font-semibold text-sm text-gray-900 mb-1 leading-snug">
+              <Popup minWidth={260}>
+                <div className="font-sans w-64">
+                  <p className="font-semibold text-sm text-gray-900 mb-0.5 leading-snug">
                     {route.name}
                   </p>
                   {route.omrade && (
                     <p className="text-xs text-gray-500 mb-1">{route.omrade}</p>
                   )}
-                  <div className="text-xs text-gray-600 space-y-0.5">
+                  <div className="text-xs text-gray-600 flex gap-3 mb-2">
                     {route.distanceKm && (
-                      <p>
+                      <span>
                         <span className="font-medium">Lengde:</span>{" "}
                         {route.distanceKm} km
-                      </p>
+                      </span>
                     )}
                     {route.vanskelighet !== "Ukjent" && (
-                      <p>
+                      <span>
                         <span className="font-medium">Vanskelighet:</span>{" "}
                         {route.vanskelighet}
-                      </p>
+                      </span>
                     )}
                   </div>
+                  <ElevationProfile route={route} />
                 </div>
               </Popup>
             </Polyline>

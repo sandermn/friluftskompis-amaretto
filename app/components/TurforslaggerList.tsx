@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import WeatherForecast from "./WeatherForecast";
+import ElevationProfile from "./ElevationProfile";
 import type { SearchResult } from "../api/search/route";
 import type { Route } from "../page";
 
@@ -162,16 +163,19 @@ export default function TurforslaggerList({
                       </span>
                     )}
                     <span className="text-xs text-blue-700 ml-auto">
-                      {isSelected ? "Skjul vær ↑" : "Vis vær ↓"}
+                      {isSelected ? "Lukk ↑" : "Mer ↓"}
                     </span>
                   </div>
                 </button>
                 {isSelected && (
-                  <WeatherForecast
-                    key={`${tur.lat},${tur.lon}`}
-                    lat={tur.lat}
-                    lon={tur.lon}
-                  />
+                  <>
+                    <ElevationProfile route={tur} />
+                    <WeatherForecast
+                      key={`${tur.lat},${tur.lon}`}
+                      lat={tur.lat}
+                      lon={tur.lon}
+                    />
+                  </>
                 )}
               </li>
             );

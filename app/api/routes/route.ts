@@ -76,7 +76,7 @@ export async function GET() {
         Origin: "https://ut.no",
       },
       body: JSON.stringify({
-        query: `{ routes(paging: { first: 100 }) { edges { node { ${FIELDS} } } } }`,
+        query: `{ routes(paging: { first: 30 }) { edges { node { ${FIELDS} } } } }`,
       }),
       next: { revalidate: 3600 },
     });
