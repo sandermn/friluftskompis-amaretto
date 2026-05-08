@@ -23,6 +23,7 @@ interface Cabin {
   bedsNoService: number;
   bedsWinter: number;
   elevationCustom: number | null;
+  areaIds: number[];
 }
 
 const SERVICE_COLORS: Record<string, string> = {
@@ -62,9 +63,10 @@ function FlyToController({ target }: { target: SearchResult | null }) {
 
 interface DntMapProps {
   selectedLocation: SearchResult | null;
+  selectedAreaId: number | null;
 }
 
-export default function DntMap({ selectedLocation }: DntMapProps) {
+export default function DntMap({ selectedLocation, selectedAreaId }: DntMapProps) {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +102,9 @@ export default function DntMap({ selectedLocation }: DntMapProps) {
         />
         <FlyToController target={selectedLocation} />
 
-        {cabins.map((cabin) => {
+        {cabins
+          .filter((c) => !selectedAreaId || c.areaIds?.includes(selectedAreaId))
+          .map((cabin) => {
           const [lon, lat] = cabin.geojson.coordinates;
           const elevation =
             cabin.elevationCustom ?? cabin.geojson.coordinates[2];
@@ -155,6 +159,11 @@ export default function DntMap({ selectedLocation }: DntMapProps) {
         <p className="font-semibold text-gray-700 mb-2 uppercase tracking-wide text-[10px]">
           Hyttetype
         </p>
+        {selectedAreaId && (
+          <p className="text-[10px] text-green-700 font-medium mb-2">
+            {cabins.filter((c) => c.areaIds?.includes(selectedAreaId)).length} hytter i området
+          </p>
+        )}
         {Object.entries(SERVICE_LABELS).map(([key, label]) => (
           <div key={key} className="flex items-center gap-2 mb-1">
             <span
