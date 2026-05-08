@@ -147,6 +147,7 @@ export default function SearchBar({ onSelect }: Props) {
           placeholder="Søk på hytte, område eller fjelltopp…"
           aria-label="Søk etter hytte, område eller fjelltopp"
           className="flex-1 text-sm text-gray-800 placeholder:text-gray-400 outline-none bg-transparent"
+          role="combobox"
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls="search-listbox"

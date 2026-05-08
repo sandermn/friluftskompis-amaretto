@@ -134,35 +134,6 @@ export default async function StatusPage() {
               </ul>
             </section>
 
-            {/* App info */}
-            <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                Appinfo
-              </h2>
-              <ul className="divide-y divide-gray-100 bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <li className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-gray-700">Versjon</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {data.version}
-                  </span>
-                </li>
-                <li className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-gray-700">Fallback-ruter</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    Aktivert (5 ruter)
-                  </span>
-                </li>
-                <li className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-gray-700">AI-tips</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {process.env.OPENAI_API_KEY
-                      ? "Tilgjengelig"
-                      : "Ikke konfigurert (OPENAI_API_KEY mangler)"}
-                  </span>
-                </li>
-              </ul>
-            </section>
-
             {/* Data sources legend */}
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
@@ -174,7 +145,7 @@ export default async function StatusPage() {
                     ✦ AI-generert
                   </span>
                   <p className="text-xs text-gray-600">
-                    Innhold laget av en stor språkmodell (OpenAI GPT-4o mini).
+                    Innhold laget av en stor språkmodell.
                     Kan inneholde unøyaktigheter — bruk skjønn.
                   </p>
                 </div>
